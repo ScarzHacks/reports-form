@@ -36,11 +36,11 @@
 
   <script>
     // ────────────────────────────────────────────────
-    // SINGLE Supabase setup – this is the only declaration
+    // ONLY ONE Supabase client using the new syntax you requested
     // ────────────────────────────────────────────────
     const supabaseUrl = 'https://ugijazxbscpiwavmkjbr.supabase.co';
     const supabaseKey = 'sb_publishable_tUlhOkObHpTpwlh-9R7x0Q_1kd_q6qe';
-    const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     let allReports = [];
 
@@ -61,8 +61,8 @@
         allReports = data || [];
         renderReports(allReports);
       } catch (err) {
-        console.error('Supabase fetch error:', err);
-        errorDiv.innerHTML = `Failed to load reports: ${err.message || 'Unknown error'}<br><br>Code: ${err.code || 'N/A'}<br><br>Possible causes:<br>- Row Level Security (RLS) blocking public read access<br>- Check Supabase policies (SQL Editor → Run: SELECT * FROM reports LIMIT 5;)<br>- Browser Tracking Prevention blocking CDN (try Chrome/Firefox or disable in Edge settings)`;
+        console.error('Supabase error:', err);
+        errorDiv.innerHTML = `Failed to load reports: ${err.message || 'Unknown error'}<br><br>Check Supabase RLS policies (SQL Editor).`;
         list.innerHTML = '';
       }
     }
@@ -72,7 +72,7 @@
       list.innerHTML = '';
 
       if (reports.length === 0) {
-        list.innerHTML = '<p style="text-align:center; color:#666; padding:40px;">No reports found yet. Submit one from the main page!</p>';
+        list.innerHTML = '<p style="text-align:center; color:#666; padding:40px;">No reports found yet. Submit one!</p>';
         return;
       }
 
@@ -106,7 +106,7 @@
       renderReports(filtered);
     });
 
-    // Load reports when page opens
+    // Load when page opens
     loadReports();
   </script>
 </body>
