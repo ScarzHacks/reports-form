@@ -43,7 +43,7 @@
         <label>Reported User Name</label><input id="reported_user" placeholder="Username or ID" required>
         <label>Reason for Report</label><textarea id="reason" placeholder="Describe the incident..." required></textarea>
         <label>Proposed Punishment</label><input id="punishment" placeholder="e.g. Warning / Ban">
-        <label>Moderator Who Took Action</label><input id="moderator" placeholder="Don (exact)" required>
+        <label>Moderator Who Took Action</label><input id="moderator" placeholder="Your username" required>
         <label>Additional Link</label><input id="link" placeholder="https://" type="url">
         <label>Image Proof (optional)</label><input type="file" id="image" accept="image/*">
         <label>Video Proof (optional)</label><input type="file" id="video" accept="video/*">
@@ -116,15 +116,22 @@
       if (!confirm('Delete this report permanently?')) return;
 
       try {
-        const { error } = await sb.from('reports').delete().eq('id', id);
+        // .select() forces Supabase to return the deleted row(s) — if none returned, policy blocked it
+        const { data, error } = await sb
+          .from('reports')
+          .delete()
+          .eq('id', id)
+          .select();
+
         if (error) throw error;
+        if (!data || data.length === 0) throw new Error('Delete blocked by RLS policy (row not removed)');
 
         element.remove();
-        loadReports();
-        console.log('✅ Report deleted permanently (ID:', id, ')');
+        loadReports();   // full reload from DB
+        console.log('✅ Report permanently deleted (ID:', id, ')');
       } catch (err) {
         console.error('Delete failed full details:', err);
-        alert('Delete failed: ' + (err.message || 'Check console (F12)'));
+        alert('Delete failed: ' + (err.message || 'Unknown error') + '\nCheck console (F12) for details');
       }
     }
 
@@ -152,9 +159,7 @@
           if (uErr) throw uErr;
           const { data } = sb.storage.from('report-media').getPublicUrl(path);
           image_url = data.publicUrl;
-          console.log('Image uploaded:', image_url);
         }
-
         if (videoFile) {
           const path = `videos/${Date.now()}_${videoFile.name.replace(/\s+/g, '_')}`;
           const { error: uErr } = await sb.storage.from('report-media').upload(path, videoFile);
@@ -170,7 +175,7 @@
         if (error) throw error;
 
         status.style.color = 'green';
-        status.textContent = '✅ Report submitted successfully!';
+        status.textContent = '✅ Report submitted!';
         document.getElementById('reportForm').reset();
       } catch (err) {
         console.error('Submit error full details:', err);
