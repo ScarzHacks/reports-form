@@ -6,18 +6,67 @@
   <title>Submit Report</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7fa; color: #333; }
-    header { background: #0070f3; color: white; padding: 25px; text-align: center; }
-    .container { max-width: 700px; margin: 40px auto; padding: 0 20px; }
-    form { background: white; padding: 35px; border-radius: 12px; box-shadow: 0 6px 25px rgba(0,0,0,0.1); }
-    label { display: block; margin: 20px 0 8px; font-weight: 600; }
-    input, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
-    textarea { min-height: 120px; }
-    button { background: #10b981; color: white; border: none; padding: 14px 30px; border-radius: 6px; font-size: 17px; cursor: pointer; margin-top: 25px; }
-    button:hover { background: #059669; }
-    #status { margin-top: 20px; font-weight: bold; text-align: center; }
-    .view-btn { display: block; width: 100%; text-align: center; background: #0070f3; color: white; padding: 18px; border-radius: 8px; font-size: 18px; text-decoration: none; margin-top: 30px; }
-    .view-btn:hover { background: #005bb5; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      background: #f4f7fa;
+      color: #333;
+    }
+    header {
+      background: #0070f3;
+      color: white;
+      padding: 25px;
+      text-align: center;
+    }
+    .container {
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    form {
+      background: white;
+      padding: 35px;
+      border-radius: 12px;
+      box-shadow: 0 6px 25px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin: 20px 0 8px;
+      font-weight: 600;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+    textarea {
+      min-height: 120px;
+    }
+    button {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 14px 30px;
+      border-radius: 6px;
+      font-size: 17px;
+      cursor: pointer;
+      margin-top: 25px;
+    }
+    button:hover {
+      background: #059669;
+    }
+    #status {
+      margin-top: 20px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .view-link {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 18px;
+    }
   </style>
 </head>
 <body>
@@ -49,16 +98,23 @@
 
       <button type="submit">Submit Report</button>
     </form>
+
     <div id="status"></div>
 
-    <a href="reports.html" class="view-btn">📋 View All Reports</a>
+    <div class="view-link">
+      <a href="reports.html" style="color:#0070f3; text-decoration:none;">→ View All Reports</a>
+    </div>
   </div>
 
   <script>
+    // ────────────────────────────────────────────────
+    // Only ONE Supabase client declaration
+    // ────────────────────────────────────────────────
     const supabaseUrl = 'https://ugijazxbscpiwavmkjbr.supabase.co';
     const supabaseKey = 'sb_publishable_tUlhOkObHpTpwlh-9R7x0Q_1kd_q6qe';
     const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
 
+    // Submit handler
     document.getElementById('reportForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const status = document.getElementById('status');
@@ -88,7 +144,13 @@
         }
 
         const { error } = await supabase.from('reports').insert({
-          reported_user, reason, punishment, moderator, link, image_url, video_url
+          reported_user,
+          reason,
+          punishment,
+          moderator,
+          link,
+          image_url,
+          video_url
         });
 
         if (error) throw error;
@@ -99,6 +161,7 @@
       } catch (err) {
         status.style.color = 'red';
         status.textContent = '❌ Error: ' + err.message;
+        console.error('Submit error:', err);
       }
     });
   </script>
