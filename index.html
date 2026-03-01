@@ -13,8 +13,6 @@
     nav a.active { background: #0070f3; }
     nav a:hover { background: #0060d0; }
     .container { max-width: 800px; margin: 30px auto; padding: 0 20px; }
-
-    /* Form */
     form { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
     label { display: block; margin: 18px 0 6px; font-weight: 600; }
     input, textarea { width: 100%; padding: 11px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
@@ -22,29 +20,10 @@
     button { background: #10b981; color: white; border: none; padding: 14px 28px; border-radius: 6px; cursor: pointer; font-size: 16px; margin-top: 20px; }
     button:hover { background: #059669; }
     #status { margin-top: 16px; font-weight: bold; text-align: center; }
-
-    /* Tabs */
     .tab-content { display: none; }
     .tab-content.active { display: block; }
-
-    /* View Reports - Compact + Search */
-    #searchBox {
-      width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      margin-bottom: 20px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-    .report-item {
-      background: white;
-      padding: 16px;
-      margin: 12px 0;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-      line-height: 1.5;
-    }
-    .report-item strong { color: #0070f3; }
+    .report-item { background: white; padding: 16px; margin: 12px 0; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); line-height: 1.5; }
+    #searchBox { width: 100%; padding: 12px; font-size: 16px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 6px; }
   </style>
 </head>
 <body>
@@ -58,7 +37,6 @@
 
   <div class="container">
 
-    <!-- Submit Tab -->
     <div id="submit" class="tab-content active">
       <form id="reportForm">
         <label>Reported User Name</label>
@@ -87,27 +65,26 @@
       <div id="status"></div>
     </div>
 
-    <!-- View All Reports Tab -->
     <div id="view" class="tab-content">
-      <input type="text" id="searchBox" placeholder="🔍 Search reports (user, reason, punishment, moderator...)">
+      <input type="text" id="searchBox" placeholder="Search reports (user, reason, moderator...)">
       <div id="reports-list">Loading reports...</div>
     </div>
 
   </div>
 
   <script>
+    // Single Supabase declaration – no duplicates
     const supabaseUrl = 'https://ugijazxbscpiwavmkjbr.supabase.co';
     const supabaseKey = 'sb_publishable_tUlhOkObHpTpwlh-9R7x0Q_1kd_q6qe';
     const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
 
-    let allReports = [];   // Store reports for searching
+    let allReports = [];
 
     function showTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
       document.getElementById(tabId).classList.add('active');
       document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
       document.querySelector(`nav a[href="#${tabId}"]`).classList.add('active');
-
       if (tabId === 'view') loadReports();
     }
 
@@ -151,19 +128,14 @@
         if (r.link) div.innerHTML += `<strong>Link:</strong> <a href="${r.link}" target="_blank">${r.link}</a><br>`;
         if (r.image_url) div.innerHTML += `<img src="${r.image_url}" style="max-width:100%; margin-top:10px; border-radius:6px;" alt="image"><br>`;
         if (r.video_url) div.innerHTML += `<video src="${r.video_url}" controls style="max-width:100%; margin-top:10px; border-radius:6px;"></video><br>`;
-
         list.appendChild(div);
       });
     }
 
-    // Real-time search
+    // Search filter
     document.getElementById('searchBox').addEventListener('input', function() {
       const term = this.value.toLowerCase().trim();
-      if (!term) {
-        renderReports(allReports);
-        return;
-      }
-      const filtered = allReports.filter(r => 
+      const filtered = allReports.filter(r =>
         (r.reported_user || '').toLowerCase().includes(term) ||
         (r.reason || '').toLowerCase().includes(term) ||
         (r.punishment || '').toLowerCase().includes(term) ||
@@ -212,10 +184,8 @@
         status.textContent = 'Report submitted successfully!';
         document.getElementById('reportForm').reset();
 
-        // Auto refresh view if user is on view tab
-        if (document.getElementById('view').classList.contains('active')) {
-          loadReports();
-        }
+        // Refresh view if already on that tab
+        if (document.getElementById('view').classList.contains('active')) loadReports();
       } catch (err) {
         status.style.color = 'red';
         status.textContent = 'Error: ' + err.message;
