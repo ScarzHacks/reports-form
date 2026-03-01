@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All Reports</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7fa; color: #333; }
+    header { background: #0070f3; color: white; padding: 20px; text-align: center; }
+    .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+    #searchBox { width: 100%; padding: 14px; font-size: 17px; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 20px; }
+    .report-item {
+      background: white;
+      padding: 18px;
+      margin: 15px 0;
+      border-radius: 10px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+      line-height: 1.6;
+    }
+    .back-link { text-align: center; margin: 30px 0; font-size: 18px; }
+  </style>
+</head>
+<body>
+
+  <header><h1>All Reports</h1></header>
+
+  <div class="container">
+    <input type="text" id="searchBox" placeholder="🔍 Search by user, reason, punishment, moderator...">
+
+    <div id="reports-list">Loading all reports...</div>
+
+    <div class="back-link">
+      <a href="index.html" style="color:#0070f3; text-decoration:none;">← Back to Submit Report</a>
+    </div>
+  </div>
+
+  <script>
+    const supabaseUrl = 'https://ugijazxbscpiwavmkjbr.supabase.co';
+    const supabaseKey = 'sb_publishable_tUlhOkObHpTpwlh-9R7x0Q_1kd_q6qe';
+    const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+
+    let allReports = [];
+
+    async function loadReports() {
+      const list = document.getElementById('reports-list');
+      list.innerHTML = 'Loading all reports...';
+
+      const { data, error } = await supabase
+        .from('reports')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        list.innerHTML = 'Error: ' + error.message;
+        return;
+      }
+
+      allReports = data || [];
+      renderReports(allReports);
+    }
+
+    function renderReports(reports) {
+      const list = document.getElementById('reports-list');
+      list.innerHTML = '';
+
+      if (reports.length === 0) {
+        list.innerHTML = '<p style="text-align:center; color:#666; padding:40px;">No reports found.</p>';
+        return;
+      }
+
+      reports.forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'report-item';
+        div.innerHTML = `
+          <strong>Reported User:</strong> ${r.reported_user || '—'}<br>
+          <strong>Reason:</strong> ${r.reason || '—'}<br>
+          <strong>Punishment:</strong> ${r.punishment || 'None'}<br>
+          <strong>Moderator:</strong> ${r.moderator || '—'}<br>
+          <strong>Date:</strong> ${new Date(r.created_at).toLocaleString()}<br>
+        `;
+        if (r.link) div.innerHTML += `<strong>Proof link:</strong> <a href="${r.link}" target="_blank">${r.link}</a><br>`;
+        if (r.image_url) div.innerHTML += `<img src="${r.image_url}" style="max-width:100%; margin-top:12px; border-radius:8px;" alt="image"><br>`;
+        if (r.video_url) div.innerHTML += `<video src="${r.video_url}" controls style="max-width:100%; margin-top:12px; border-radius:8px;"></video><br>`;
+        list.appendChild(div);
+      });
+    }
+
+    // Live search
+    document.getElementById('searchBox').addEventListener('input', function() {
+      const term = this.value.toLowerCase().trim();
+      const filtered = allReports.filter(r =>
+        (r.reported_user || '').toLowerCase().includes(term) ||
+        (r.reason || '').toLowerCase().includes(term) ||
+        (r.punishment || '').toLowerCase().includes(term) ||
+        (r.moderator || '').toLowerCase().includes(term) ||
+        (r.link || '').toLowerCase().includes(term)
+      );
+      renderReports(filtered);
+    });
+
+    // Load reports when page opens
+    loadReports();
+  </script>
+</body>
+</html>
