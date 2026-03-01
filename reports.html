@@ -35,9 +35,7 @@
   </div>
 
   <script>
-    // ────────────────────────────────────────────────
-    // ONLY ONE Supabase client using the new syntax you requested
-    // ────────────────────────────────────────────────
+    // ONLY ONE Supabase client using createClient syntax
     const supabaseUrl = 'https://ugijazxbscpiwavmkjbr.supabase.co';
     const supabaseKey = 'sb_publishable_tUlhOkObHpTpwlh-9R7x0Q_1kd_q6qe';
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -62,7 +60,7 @@
         renderReports(allReports);
       } catch (err) {
         console.error('Supabase error:', err);
-        errorDiv.innerHTML = `Failed to load reports: ${err.message || 'Unknown error'}<br><br>Check Supabase RLS policies (SQL Editor).`;
+        errorDiv.innerHTML = `Failed to load reports: ${err.message || 'Unknown error'}<br><br>Possible cause: RLS policy missing for SELECT (run the SQL policy in Supabase).`;
         list.innerHTML = '';
       }
     }
@@ -93,7 +91,6 @@
       });
     }
 
-    // Live search
     document.getElementById('searchBox').addEventListener('input', function() {
       const term = this.value.toLowerCase().trim();
       const filtered = allReports.filter(r =>
@@ -106,7 +103,6 @@
       renderReports(filtered);
     });
 
-    // Load when page opens
     loadReports();
   </script>
 </body>
