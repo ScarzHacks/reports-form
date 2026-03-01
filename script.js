@@ -1,4 +1,4 @@
-// script.js – Shared reports via Supabase (50 MB file limit for free tier)
+// script.js – Shared reports via Supabase (updated for better error visibility)
 
 let reports = [];
 
@@ -12,7 +12,7 @@ async function loadReports() {
   if (error) {
     console.error('Error fetching reports:', error.message);
     document.getElementById('reportsList').innerHTML = 
-      '<p class="text-center text-red-600 py-12">Error loading reports. Check console.</p>';
+      '<p class="text-center text-red-600 py-12">Error loading reports: ' + error.message + '</p>';
     return;
   }
 
@@ -117,7 +117,6 @@ document.getElementById('reportForm').addEventListener('submit', async function(
 
   // Upload files one by one
   for (const file of files) {
-    // Updated: allow up to 50 MB (Supabase free tier limit)
     if (file.size > 50 * 1024 * 1024) {
       alert(`File too large: ${file.name}\n\nMax allowed: 50 MB per file (current free plan limit).\nTry compressing the file or use a smaller one.`);
       continue;
@@ -126,16 +125,16 @@ document.getElementById('reportForm').addEventListener('submit', async function(
     const fileExt = file.name.split('.').pop();
     const filePath = `${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`;
 
-    const { data, error } = await supabase.storage
+    const { data, error: uploadError } = await supabase.storage
       .from('evidence')
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: false
       });
 
-    if (error) {
-      console.error('Upload failed:', error);
-      alert(`Failed to upload ${file.name}: ${error.message}`);
+    if (uploadError) {
+      console.error('Upload failed for', file.name, ':', uploadError);
+      alert(`Failed to upload ${file.name}: ${uploadError.message || 'Unknown error'}`);
       continue;
     }
 
@@ -146,23 +145,25 @@ document.getElementById('reportForm').addEventListener('submit', async function(
     evidenceUrls.push(urlData.publicUrl);
   }
 
-  // Insert report record
-  const { error } = await supabase
+  // Insert report record – with improved error logging
+  const { data: inserted, error: insertError } = await supabase
     .from('reports')
     .insert({
-      username: formData.get('username').trim(),
-      reason: formData.get('reason').trim(),
-      details: formData.get('details').trim(),
+      username: formData.get('username')?.trim() || 'Anonymous',
+      reason: formData.get('reason')?.trim() || 'Other',
+      details: formData.get('details')?.trim() || '',
       evidence: evidenceUrls.length ? evidenceUrls : null
     });
 
-  if (error) {
-    console.error('Insert failed:', error);
-    alert('Failed to submit report. Check console for details.');
+  if (insertError) {
+    console.error('Report insert failed:', insertError);
+    alert(`Failed to submit report:\n${insertError.message || 'Unknown error'}\n\nCheck browser console (F12) for details.`);
     return;
   }
 
-  // Success
+  console.log('Report successfully inserted:', inserted);
+
+  // Success feedback
   document.getElementById('successMessage').classList.remove('hidden');
   e.target.reset();
   document.getElementById('previewContainer').innerHTML = '';
@@ -186,7 +187,7 @@ window.deleteReport = async function(id) {
 
   if (error) {
     console.error('Delete failed:', error);
-    alert('Could not delete report');
+    alert('Could not delete report: ' + (error.message || 'Unknown error'));
     return;
   }
 
@@ -202,7 +203,7 @@ window.clearAllReports = async function() {
     .delete()
     .neq('id', '00000000-0000-0000-0000-000000000000');
 
-  if (error) console.error(error);
+  if (error) console.error('Clear all failed:', error);
   loadReports();
 };
 
@@ -210,18 +211,18 @@ window.clearAllReports = async function() {
 function showSubmit() {
   document.getElementById('submitSection').classList.remove('hidden');
   document.getElementById('viewSection').classList.add('hidden');
-  document.getElementById('submitTab').classList.add('border-blue-600','text-blue-600');
+  document.getElementById('submitTab').classList.add('border-blue-600', 'text-blue-600');
   document.getElementById('submitTab').classList.remove('text-gray-500');
-  document.getElementById('viewTab').classList.remove('border-blue-600','text-blue-600');
+  document.getElementById('viewTab').classList.remove('border-blue-600', 'text-blue-600');
   document.getElementById('viewTab').classList.add('text-gray-500');
 }
 
 function showView() {
   document.getElementById('submitSection').classList.add('hidden');
   document.getElementById('viewSection').classList.remove('hidden');
-  document.getElementById('submitTab').classList.remove('border-blue-600','text-blue-600');
+  document.getElementById('submitTab').classList.remove('border-blue-600', 'text-blue-600');
   document.getElementById('submitTab').classList.add('text-gray-500');
-  document.getElementById('viewTab').classList.add('border-blue-600','text-blue-600');
+  document.getElementById('viewTab').classList.add('border-blue-600', 'text-blue-600');
   renderReports(document.getElementById('searchInput').value);
 }
 
