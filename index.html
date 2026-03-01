@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reporting System</title>
+  
+  <!-- ONLY ONE Supabase CDN script (keep this) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -151,10 +154,16 @@
   </div>
 
   <script>
-    // Supabase setup – only once
+    // ==================== FIXED SUPABASE SETUP ====================
     const supabaseUrl = 'https://ugijazxbscpiwavmkjbr.supabase.co';
     const supabaseKey = 'sb_publishable_tUlhOkObHpTpwlh-9R7x0Q_1kd_q6qe';
-    const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
+
+    // Pull createClient from the CDN (this is the "destructure" part)
+    const { createClient } = window.supabase;
+
+    // Create the actual client with a DIFFERENT name so we NEVER get "already declared"
+    const sb = createClient(supabaseUrl, supabaseKey);
+    // ============================================================
 
     // Tab switching
     function showTab(tabId) {
@@ -174,13 +183,13 @@
       const list = document.getElementById('reports-list');
       list.innerHTML = 'Loading reports...';
 
-      const { data, error } = await supabase
+      const { data, error } = await sb
         .from('reports')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        list.innerHTML = '<p style="color:red; text-align:center;">Error loading reports: ' + error.message + '</p>';
+        list.innerHTML = `<p style="color:red; text-align:center;">Error loading reports: ${error.message}</p>`;
         return;
       }
 
@@ -238,17 +247,17 @@
       try {
         if (imageFile) {
           const path = `images/${Date.now()}_${imageFile.name}`;
-          await supabase.storage.from('report-media').upload(path, imageFile);
+          await sb.storage.from('report-media').upload(path, imageFile);
           image_url = `${supabaseUrl}/storage/v1/object/public/report-media/${path}`;
         }
 
         if (videoFile) {
           const path = `videos/${Date.now()}_${videoFile.name}`;
-          await supabase.storage.from('report-media').upload(path, videoFile);
+          await sb.storage.from('report-media').upload(path, videoFile);
           video_url = `${supabaseUrl}/storage/v1/object/public/report-media/${path}`;
         }
 
-        const { error } = await supabase
+        const { error } = await sb
           .from('reports')
           .insert({
             reported_user,
