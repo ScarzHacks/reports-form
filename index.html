@@ -6,8 +6,26 @@
   <title>Reporting System</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f7fa; color: #333; }
-    .container { max-width: 700px; margin: 40px auto; padding: 0 20px; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      margin: 0; 
+      background: #f4f7fa; 
+      color: #333; 
+      height: 100vh; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+    }
+    #password-screen {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+    }
+    #main-content { display: none; }
     header { background: #0070f3; color: white; padding: 15px; text-align: center; border-radius: 8px 8px 0 0; }
     nav { display: flex; background: #005bb5; }
     nav a { flex: 1; color: white; text-align: center; padding: 12px; text-decoration: none; font-weight: bold; }
@@ -18,51 +36,97 @@
     input, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
     button { background: #28a745; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 16px; margin-top: 20px; }
     button:hover { background: #218838; }
-    #status { margin-top: 15px; font-weight: bold; text-align: center; }
+    #status, #password-error { margin-top: 15px; font-weight: bold; text-align: center; color: red; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
+    .container { max-width: 700px; margin: 40px auto; padding: 0 20px; width: 100%; }
   </style>
 </head>
 <body>
-  <header><h1>Reporting System</h1></header>
 
-  <nav>
-    <a href="#submit" class="active" onclick="showTab('submit')">Submit Report</a>
-    <a href="#view" onclick="showTab('view')">View All Reports</a>
-  </nav>
+  <!-- Password Screen -->
+  <div id="password-screen">
+    <h2>Enter Password</h2>
+    <input type="password" id="password-input" placeholder="Password..." style="padding:12px; width:100%; margin:15px 0; border-radius:6px; border:1px solid #ccc;">
+    <button onclick="checkPassword()">Unlock</button>
+    <div id="password-error"></div>
+  </div>
 
-  <div class="container">
-    <div id="submit" class="tab-content active">
-      <form id="reportForm">
-        <label for="reported_user">Reported User Name</label>
-        <input id="reported_user" placeholder="Username or ID" required>
+  <!-- Main Content (hidden until password correct) -->
+  <div id="main-content">
+    <header><h1>Reporting System</h1></header>
 
-        <label for="reason">Reason for Report</label>
-        <textarea id="reason" rows="5" placeholder="Describe what happened..." required></textarea>
+    <nav>
+      <a href="#submit" class="active" onclick="showTab('submit')">Submit Report</a>
+      <a href="#view" onclick="showTab('view')">View All Reports</a>
+    </nav>
 
-        <label for="punishment">Proposed Punishment</label>
-        <input id="punishment" placeholder="e.g., Warning, Ban, Mute">
+    <div class="container">
+      <div id="submit" class="tab-content active">
+        <form id="reportForm">
+          <label for="reported_user">Reported User Name</label>
+          <input id="reported_user" placeholder="Username or ID" required>
 
-        <label for="link">Additional Link (proof/screenshot)</label>
-        <input id="link" placeholder="https://..." type="url">
+          <label for="reason">Reason for Report</label>
+          <textarea id="reason" rows="5" placeholder="Describe what happened..." required></textarea>
 
-        <label for="image">Image Proof (optional)</label>
-        <input type="file" id="image" accept="image/*">
+          <label for="punishment">Proposed Punishment</label>
+          <input id="punishment" placeholder="e.g., Warning, Ban, Mute">
 
-        <label for="video">Video Proof (optional)</label>
-        <input type="file" id="video" accept="video/*">
+          <label for="moderator">Moderator Who Took Action</label>
+          <input id="moderator" placeholder="Your username / Moderator name" required>
 
-        <button type="submit">Submit Report</button>
-      </form>
-      <div id="status"></div>
-    </div>
+          <label for="link">Additional Link (proof/screenshot)</label>
+          <input id="link" placeholder="https://..." type="url">
 
-    <div id="view" class="tab-content">
-      <div id="reports-list">Loading reports... (refresh if empty)</div>
+          <label for="image">Image Proof (optional)</label>
+          <input type="file" id="image" accept="image/*">
+
+          <label for="video">Video Proof (optional)</label>
+          <input type="file" id="video" accept="video/*">
+
+          <button type="submit">Submit Report</button>
+        </form>
+        <div id="status"></div>
+      </div>
+
+      <div id="view" class="tab-content">
+        <div id="reports-list">Loading reports... (refresh if empty)</div>
+      </div>
     </div>
   </div>
 
   <script>
+    const PASSWORD = "Eastern123";  // ← Change this if you ever want a different password
+
+    function checkPassword() {
+      const input = document.getElementById('password-input').value;
+      const error = document.getElementById('password-error');
+
+      if (input === PASSWORD) {
+        document.getElementById('password-screen').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+        // Optional: load reports immediately if view tab is active
+        if (window.location.hash === '#view') {
+          showTab('view');
+        }
+      } else {
+        error.textContent = 'Incorrect password. Try again.';
+        error.style.color = 'red';
+      }
+    }
+
+    // Allow pressing Enter to submit password
+    document.getElementById('password-input').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        checkPassword();
+      }
+    });
+
+    // ────────────────────────────────────────────────
+    // The rest of your existing code (Supabase + tabs + form + view)
+    // ────────────────────────────────────────────────
+
     const supabaseUrl = 'https://ugijazxbscpiwavmkjbr.supabase.co';
     const supabaseKey = 'sb_publishable_tUlhOkObHpTpwlh-9R7x0Q_1kd_q6qe';
     const supabase = Supabase.createClient(supabaseUrl, supabaseKey);
@@ -102,6 +166,7 @@
           <strong>Reported:</strong> ${r.reported_user || 'Unknown'}<br>
           <strong>Reason:</strong> ${r.reason || 'N/A'}<br>
           <strong>Punishment:</strong> ${r.punishment || 'None'}<br>
+          <strong>Moderator:</strong> ${r.moderator || 'Not specified'}<br>
           <strong>Submitted:</strong> ${new Date(r.created_at).toLocaleString()}<br>
         `;
         if (r.link) div.innerHTML += `<strong>Proof link:</strong> <a href="${r.link}" target="_blank">${r.link}</a><br>`;
@@ -119,6 +184,7 @@
       const reported_user = document.getElementById('reported_user').value.trim() || null;
       const reason = document.getElementById('reason').value.trim();
       const punishment = document.getElementById('punishment').value.trim() || null;
+      const moderator = document.getElementById('moderator').value.trim() || null;
       const link = document.getElementById('link').value.trim() || null;
 
       let image_url = '', video_url = '';
@@ -138,7 +204,7 @@
         }
 
         const { error } = await supabase.from('reports').insert({
-          reported_user, reason, punishment, link, image_url, video_url
+          reported_user, reason, punishment, moderator, link, image_url, video_url
         });
 
         if (error) throw error;
@@ -152,10 +218,7 @@
       }
     });
 
-    // Auto-load reports if someone bookmarks the view tab
-    if (window.location.hash === '#view') {
-      showTab('view');
-    }
+    // Optional: if someone bookmarks directly to #view, they still need password first
   </script>
 </body>
 </html>
