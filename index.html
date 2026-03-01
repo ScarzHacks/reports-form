@@ -184,7 +184,7 @@
       position: relative;
       z-index: 1;
     }
-    /* ──── Red + Black RGB Glowing Orbs ──── */
+ /* ──── Red + Black RGB Glowing Orbs ──── */
 .orb {
   position: absolute;
   border-radius: 50%;
@@ -194,7 +194,20 @@
   animation: floatOrb 22s infinite ease-in-out, pulseOrb 7s infinite alternate;
 }
 
-.orb-red {
+#view::after::before,
+#view::after::after,
+#view::after::before::before {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.4;
+  animation: floatOrb 22s infinite ease-in-out, pulseOrb 7s infinite alternate;
+}
+
+/* orb-red */
+#view::after::before {
   width: 380px;
   height: 380px;
   background: radial-gradient(circle at 35% 45%, #ff1a1a 10%, transparent 70%);
@@ -204,7 +217,8 @@
   animation-delay: 0s;
 }
 
-.orb-dark {
+/* orb-dark */
+#view::after::after {
   width: 320px;
   height: 320px;
   background: radial-gradient(circle at 60% 65%, #330000 15%, transparent 65%);
@@ -214,7 +228,8 @@
   animation-delay: 5s;
 }
 
-.orb-glow {
+/* orb-glow */
+#view::after::before::before {
   width: 450px;
   height: 450px;
   background: radial-gradient(circle at 50% 30%, #990000 5%, transparent 75%);
@@ -236,24 +251,6 @@
   0%   { opacity: 0.28; transform: scale(0.92); }
   100% { opacity: 0.55; transform: scale(1.18); }
 }
-
-/* Attach orbs to the reports tab background layer */
-#view {
-  overflow: hidden;
-  position: relative;
-}
-
-#view::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-}
-
-#view::after::before  { content: ""; @extend .orb; @extend .orb-red; }
-#view::after::after   { content: ""; @extend .orb; @extend .orb-dark; }
-#view::after::before::before { content: ""; @extend .orb; @extend .orb-glow; }
   </style>
 </head>
 <body>
