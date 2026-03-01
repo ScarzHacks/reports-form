@@ -8,121 +8,30 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0;
-      background: #f4f7fa;
-      color: #333;
-    }
-    header {
-      background: #0070f3;
-      color: white;
-      padding: 20px;
-      text-align: center;
-    }
-    nav {
-      display: flex;
-      background: #005bb5;
-    }
-    nav a {
-      flex: 1;
-      color: white;
-      text-align: center;
-      padding: 14px;
-      text-decoration: none;
-      font-weight: bold;
-      transition: background 0.2s;
-    }
-    nav a.active {
-      background: #0070f3;
-    }
-    nav a:hover {
-      background: #0060d0;
-    }
-    .container {
-      max-width: 720px;
-      margin: 30px auto;
-      padding: 0 20px;
-    }
-    form {
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    }
-    label {
-      display: block;
-      margin: 18px 0 6px;
-      font-weight: 600;
-    }
-    input, textarea {
-      width: 100%;
-      padding: 11px;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      box-sizing: border-box;
-      font-size: 16px;
-    }
-    textarea {
-      resize: vertical;
-      min-height: 100px;
-    }
-    button {
-      background: #10b981;
-      color: white;
-      border: none;
-      padding: 14px 28px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 16px;
-      margin-top: 20px;
-      transition: background 0.2s;
-    }
-    button:hover {
-      background: #059669;
-    }
-    #status {
-      margin-top: 16px;
-      font-weight: bold;
-      text-align: center;
-    }
-    .tab-content {
-      display: none;
-    }
-    .tab-content.active {
-      display: block;
-    }
-    .report-item {
-      background: white;
-      padding: 20px;
-      margin: 20px 0;
-      border-radius: 10px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-      line-height: 1.6;
-      position: relative;
-    }
-    .delete-btn {
-      background: #ef4444;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      position: absolute;
-      top: 15px;
-      right: 15px;
-    }
-    .delete-btn:hover {
-      background: #dc2626;
-    }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f4f7fa; color: #333; }
+    header { background: #0070f3; color: white; padding: 20px; text-align: center; }
+    nav { display: flex; background: #005bb5; }
+    nav a { flex: 1; color: white; text-align: center; padding: 14px; text-decoration: none; font-weight: bold; transition: background 0.2s; }
+    nav a.active { background: #0070f3; }
+    nav a:hover { background: #0060d0; }
+    .container { max-width: 720px; margin: 30px auto; padding: 0 20px; }
+    form { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    label { display: block; margin: 18px 0 6px; font-weight: 600; }
+    input, textarea { width: 100%; padding: 11px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+    textarea { resize: vertical; min-height: 100px; }
+    button { background: #10b981; color: white; border: none; padding: 14px 28px; border-radius: 6px; cursor: pointer; font-size: 16px; margin-top: 20px; transition: background 0.2s; }
+    button:hover { background: #059669; }
+    #status { margin-top: 16px; font-weight: bold; text-align: center; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .report-item { background: white; padding: 20px; margin: 20px 0; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); line-height: 1.6; position: relative; }
+    .delete-btn { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; position: absolute; top: 15px; right: 15px; }
+    .delete-btn:hover { background: #dc2626; }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>Reporting System</h1>
-  </header>
+  <header><h1>Reporting System</h1></header>
 
   <nav>
     <a href="#submit" class="active" onclick="showTab('submit')">Submit Report</a>
@@ -130,42 +39,23 @@
   </nav>
 
   <div class="container">
-
-    <!-- Submit tab -->
     <div id="submit" class="tab-content active">
       <form id="reportForm">
-        <label>Reported User Name</label>
-        <input id="reported_user" placeholder="Username or ID" required>
-
-        <label>Reason for Report</label>
-        <textarea id="reason" placeholder="Describe the incident in detail..." required></textarea>
-
-        <label>Proposed Punishment</label>
-        <input id="punishment" placeholder="e.g. Warning / 3-day mute / Permanent ban">
-
-        <label>Moderator Who Took Action</label>
-        <input id="moderator" placeholder="Your username / Moderator name" required>
-
-        <label>Additional Link (proof, screenshot, clip...)</label>
-        <input id="link" placeholder="https://" type="url">
-
-        <label>Image Proof (optional)</label>
-        <input type="file" id="image" accept="image/*">
-
-        <label>Video Proof (optional)</label>
-        <input type="file" id="video" accept="video/*">
-
+        <label>Reported User Name</label><input id="reported_user" placeholder="Username or ID" required>
+        <label>Reason for Report</label><textarea id="reason" placeholder="Describe the incident..." required></textarea>
+        <label>Proposed Punishment</label><input id="punishment" placeholder="e.g. Warning / Ban">
+        <label>Moderator Who Took Action</label><input id="moderator" placeholder="Your username" required>
+        <label>Additional Link</label><input id="link" placeholder="https://" type="url">
+        <label>Image Proof (optional)</label><input type="file" id="image" accept="image/*">
+        <label>Video Proof (optional)</label><input type="file" id="video" accept="video/*">
         <button type="submit">Submit Report</button>
       </form>
-
       <div id="status"></div>
     </div>
 
-    <!-- View reports tab -->
     <div id="view" class="tab-content">
       <div id="reports-list">Loading reports...</div>
     </div>
-
   </div>
 
   <script>
@@ -176,34 +66,26 @@
     const sb = createClient(supabaseUrl, supabaseKey);
 
     function showTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
       document.getElementById(tabId).classList.add('active');
-
       document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
       document.querySelector(`nav a[href="#${tabId}"]`).classList.add('active');
-
-      if (tabId === 'view') {
-        loadReports();
-      }
+      if (tabId === 'view') loadReports();
     }
 
     async function loadReports() {
       const list = document.getElementById('reports-list');
       list.innerHTML = 'Loading reports...';
 
-      const { data, error } = await sb
-        .from('reports')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data, error } = await sb.from('reports').select('*').order('created_at', { ascending: false });
 
       if (error) {
-        list.innerHTML = `<p style="color:red; text-align:center;">Error loading reports: ${error.message}</p>`;
+        list.innerHTML = `<p style="color:red;text-align:center;">Error: ${error.message}</p>`;
         console.error('Load error:', error);
         return;
       }
-
       if (!data || data.length === 0) {
-        list.innerHTML = '<p style="text-align:center; color:#666; font-style:italic;">No reports have been submitted yet.</p>';
+        list.innerHTML = '<p style="text-align:center;color:#666;font-style:italic;">No reports yet.</p>';
         return;
       }
 
@@ -211,120 +93,90 @@
       data.forEach(report => {
         const item = document.createElement('div');
         item.className = 'report-item';
-        item.dataset.reportId = report.id; // for easier reference if needed
         item.innerHTML = `
           <strong>Reported user:</strong> ${report.reported_user || '—'}<br>
           <strong>Reason:</strong> ${report.reason || '—'}<br>
-          <strong>Punishment:</strong> ${report.punishment || 'None specified'}<br>
+          <strong>Punishment:</strong> ${report.punishment || 'None'}<br>
           <strong>Moderator:</strong> ${report.moderator || '—'}<br>
           <strong>Submitted:</strong> ${new Date(report.created_at).toLocaleString()}<br>
         `;
 
-        if (report.link) {
-          item.innerHTML += `<strong>Proof link:</strong> <a href="${report.link}" target="_blank" rel="noopener noreferrer">${report.link}</a><br>`;
-        }
-        if (report.image_url) {
-          item.innerHTML += `<img src="${report.image_url}" style="max-width:100%; margin-top:12px; border-radius:8px;" alt="Proof image"><br>`;
-        }
-        if (report.video_url) {
-          item.innerHTML += `<video src="${report.video_url}" controls style="max-width:100%; margin-top:12px; border-radius:8px;"></video><br>`;
-        }
+        if (report.link) item.innerHTML += `<strong>Proof:</strong> <a href="${report.link}" target="_blank">${report.link}</a><br>`;
+        if (report.image_url) item.innerHTML += `<img src="${report.image_url}" style="max-width:100%;margin-top:12px;border-radius:8px;" alt="Proof"><br>`;
+        if (report.video_url) item.innerHTML += `<video src="${report.video_url}" controls style="max-width:100%;margin-top:12px;border-radius:8px;"></video><br>`;
 
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-btn';
-        deleteBtn.textContent = 'Delete';
-        deleteBtn.onclick = () => deleteReport(report.id, item);
-        item.appendChild(deleteBtn);
-
+        const btn = document.createElement('button');
+        btn.className = 'delete-btn';
+        btn.textContent = 'Delete';
+        btn.onclick = () => deleteReport(report.id, item);
+        item.appendChild(btn);
         list.appendChild(item);
       });
     }
 
-    async function deleteReport(reportId, reportElement) {
-      if (!confirm('Are you sure you want to delete this report? This cannot be undone.')) {
-        return;
-      }
+    async function deleteReport(id, element) {
+      if (!confirm('Delete this report permanently?')) return;
 
       try {
-        const { error } = await sb
-          .from('reports')
-          .delete()
-          .eq('id', reportId);
-
+        const { error } = await sb.from('reports').delete().eq('id', id);
         if (error) throw error;
 
-        // Remove from UI immediately (optimistic update)
-        reportElement.remove();
-
-        // Reload full list from database to confirm
-        loadReports();
-
-        console.log('Delete successful for report ID:', reportId);
+        element.remove();
+        loadReports();           // ← this reloads from database
+        console.log('✅ Delete succeeded for ID', id);
       } catch (err) {
-        alert('Delete failed: ' + (err.message || 'Unknown error') + '\nPossible reasons:\n- Moderator name does not exactly match "Don"\n- RLS policy blocking delete\n- Network issue');
-        console.error('Delete error:', err);
+        console.error('Delete failed:', err);
+        alert('Delete failed: ' + (err.message || err));
       }
     }
 
-    document.getElementById('reportForm').addEventListener('submit', async function(e) {
+    document.getElementById('reportForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-
       const status = document.getElementById('status');
-      status.textContent = 'Submitting report...';
+      status.textContent = 'Submitting...';
       status.style.color = 'black';
 
-      const reported_user = document.getElementById('reported_user').value.trim() || null;
-      const reason = document.getElementById('reason').value.trim();
-      const punishment = document.getElementById('punishment').value.trim() || null;
-      const moderator = document.getElementById('moderator').value.trim() || null;
-      const link = document.getElementById('link').value.trim() || null;
-
-      let image_url = '';
-      let video_url = '';
-
-      const imageFile = document.getElementById('image').files[0];
-      const videoFile = document.getElementById('video').files[0];
-
       try {
+        // ... (same form data collection as before)
+        const reported_user = document.getElementById('reported_user').value.trim() || null;
+        const reason = document.getElementById('reason').value.trim();
+        const punishment = document.getElementById('punishment').value.trim() || null;
+        const moderator = document.getElementById('moderator').value.trim() || null;
+        const link = document.getElementById('link').value.trim() || null;
+
+        let image_url = '', video_url = '';
+
+        const imageFile = document.getElementById('image').files[0];
+        const videoFile = document.getElementById('video').files[0];
+
         if (imageFile) {
-          const path = `images/${Date.now()}_${imageFile.name.replace(/\s+/g, '_')}`;
-          const { error: uploadError } = await sb.storage.from('report-media').upload(path, imageFile);
-          if (uploadError) throw uploadError;
-
-          const { data: urlData } = sb.storage.from('report-media').getPublicUrl(path);
-          image_url = urlData.publicUrl;
+          const path = `images/${Date.now()}_${imageFile.name.replace(/\s+/g,'_')}`;
+          const { error: uErr } = await sb.storage.from('report-media').upload(path, imageFile);
+          if (uErr) throw uErr;
+          const { data } = sb.storage.from('report-media').getPublicUrl(path);
+          image_url = data.publicUrl;
         }
-
         if (videoFile) {
-          const path = `videos/${Date.now()}_${videoFile.name.replace(/\s+/g, '_')}`;
-          const { error: uploadError } = await sb.storage.from('report-media').upload(path, videoFile);
-          if (uploadError) throw uploadError;
-
-          const { data: urlData } = sb.storage.from('report-media').getPublicUrl(path);
-          video_url = urlData.publicUrl;
+          const path = `videos/${Date.now()}_${videoFile.name.replace(/\s+/g,'_')}`;
+          const { error: uErr } = await sb.storage.from('report-media').upload(path, videoFile);
+          if (uErr) throw uErr;
+          const { data } = sb.storage.from('report-media').getPublicUrl(path);
+          video_url = data.publicUrl;
         }
 
-        const { error } = await sb
-          .from('reports')
-          .insert({
-            reported_user,
-            reason,
-            punishment,
-            moderator,
-            link,
-            image_url,
-            video_url
-          });
+        const { error } = await sb.from('reports').insert({
+          reported_user, reason, punishment, moderator, link, image_url, video_url
+        });
 
         if (error) throw error;
 
         status.style.color = 'green';
-        status.textContent = 'Report submitted successfully!';
+        status.textContent = '✅ Report submitted!';
         document.getElementById('reportForm').reset();
       } catch (err) {
+        console.error('Submit error full details:', err);
         status.style.color = 'red';
         status.textContent = 'Submission failed: ' + (err.message || 'Unknown error');
-        console.error('Submit error:', err);
       }
     });
   </script>
