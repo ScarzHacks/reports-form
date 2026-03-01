@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reporting System</title>
-  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
@@ -44,7 +43,7 @@
         <label>Reported User Name</label><input id="reported_user" placeholder="Username or ID" required>
         <label>Reason for Report</label><textarea id="reason" placeholder="Describe the incident..." required></textarea>
         <label>Proposed Punishment</label><input id="punishment" placeholder="e.g. Warning / Ban">
-        <label>Moderator Who Took Action</label><input id="moderator" placeholder="Your username" required>
+        <label>Moderator Who Took Action</label><input id="moderator" placeholder="Don (exact)" required>
         <label>Additional Link</label><input id="link" placeholder="https://" type="url">
         <label>Image Proof (optional)</label><input type="file" id="image" accept="image/*">
         <label>Video Proof (optional)</label><input type="file" id="video" accept="video/*">
@@ -100,7 +99,6 @@
           <strong>Moderator:</strong> ${report.moderator || '—'}<br>
           <strong>Submitted:</strong> ${new Date(report.created_at).toLocaleString()}<br>
         `;
-
         if (report.link) item.innerHTML += `<strong>Proof:</strong> <a href="${report.link}" target="_blank">${report.link}</a><br>`;
         if (report.image_url) item.innerHTML += `<img src="${report.image_url}" style="max-width:100%;margin-top:12px;border-radius:8px;" alt="Proof"><br>`;
         if (report.video_url) item.innerHTML += `<video src="${report.video_url}" controls style="max-width:100%;margin-top:12px;border-radius:8px;"></video><br>`;
@@ -122,11 +120,11 @@
         if (error) throw error;
 
         element.remove();
-        loadReports();           // ← this reloads from database
-        console.log('✅ Delete succeeded for ID', id);
+        loadReports();
+        console.log('✅ Report deleted permanently (ID:', id, ')');
       } catch (err) {
-        console.error('Delete failed:', err);
-        alert('Delete failed: ' + (err.message || err));
+        console.error('Delete failed full details:', err);
+        alert('Delete failed: ' + (err.message || 'Check console (F12)'));
       }
     }
 
@@ -137,7 +135,6 @@
       status.style.color = 'black';
 
       try {
-        // ... (same form data collection as before)
         const reported_user = document.getElementById('reported_user').value.trim() || null;
         const reason = document.getElementById('reason').value.trim();
         const punishment = document.getElementById('punishment').value.trim() || null;
@@ -150,14 +147,16 @@
         const videoFile = document.getElementById('video').files[0];
 
         if (imageFile) {
-          const path = `images/${Date.now()}_${imageFile.name.replace(/\s+/g,'_')}`;
+          const path = `images/${Date.now()}_${imageFile.name.replace(/\s+/g, '_')}`;
           const { error: uErr } = await sb.storage.from('report-media').upload(path, imageFile);
           if (uErr) throw uErr;
           const { data } = sb.storage.from('report-media').getPublicUrl(path);
           image_url = data.publicUrl;
+          console.log('Image uploaded:', image_url);
         }
+
         if (videoFile) {
-          const path = `videos/${Date.now()}_${videoFile.name.replace(/\s+/g,'_')}`;
+          const path = `videos/${Date.now()}_${videoFile.name.replace(/\s+/g, '_')}`;
           const { error: uErr } = await sb.storage.from('report-media').upload(path, videoFile);
           if (uErr) throw uErr;
           const { data } = sb.storage.from('report-media').getPublicUrl(path);
@@ -171,7 +170,7 @@
         if (error) throw error;
 
         status.style.color = 'green';
-        status.textContent = '✅ Report submitted!';
+        status.textContent = '✅ Report submitted successfully!';
         document.getElementById('reportForm').reset();
       } catch (err) {
         console.error('Submit error full details:', err);
