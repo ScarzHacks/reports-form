@@ -1,4 +1,5 @@
-// script.js – CLEAN VERSION – ONLY ONE supabase declaration
+ 
+// CLEAN script.js - ONLY ONE supabase line
 
 const supabase = Supabase.createClient(
   'https://tnsjtjstvpzrgznbzjdc.supabase.co',
@@ -8,17 +9,11 @@ const supabase = Supabase.createClient(
 let reports = [];
 
 async function loadReports() {
-  const { data, error } = await supabase
-    .from('reports')
-    .select('*')
-    .order('timestamp', { ascending: false });
-
+  const { data, error } = await supabase.from('reports').select('*').order('timestamp', { ascending: false });
   if (error) {
     console.error('Load error:', error.message);
-    document.getElementById('reportsList').innerHTML = '<p class="text-center text-red-600 py-12">Error loading reports</p>';
     return;
   }
-
   reports = data || [];
   renderReports();
 }
@@ -26,9 +21,8 @@ async function loadReports() {
 function renderReports(filter = '') {
   const container = document.getElementById('reportsList');
   const lowerFilter = filter.toLowerCase();
-
-  const filtered = reports.filter(r =>
-    !lowerFilter ||
+  const filtered = reports.filter(r => 
+    !lowerFilter || 
     (r.username || '').toLowerCase().includes(lowerFilter) ||
     (r.reason || '').toLowerCase().includes(lowerFilter) ||
     (r.details || '').toLowerCase().includes(lowerFilter)
@@ -54,9 +48,9 @@ function renderReports(filter = '') {
                 <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
                   ${r.evidence.map((url, i) => `
                     <div class="cursor-pointer rounded-xl overflow-hidden border hover:border-blue-400 transition"
-                         onclick="openPreview('${url}', $$   {/\.(jpg|jpeg|png|gif|webp)   $$/i.test(url)}, $$   {/\.(mp4|webm|mov)   $$/i.test(url)}, ${i})">
-                      $$   {/\.(jpg|jpeg|png|gif|webp)   $$/i.test(url) ? 
-                        `<img src="${url}" alt="Evidence" class="w-full h-24 object-cover">` :
+                         onclick="openPreview('${url}', ${/\.(jpg|jpeg|png|gif|webp)$/i.test(url)}, ${/\.(mp4|webm|mov)$/i.test(url)}, ${i})">
+                      ${/\.(jpg|jpeg|png|gif|webp)$/i.test(url) ? 
+                        `<img src="${url}" class="w-full h-24 object-cover">` :
                         /\.(mp4|webm|mov)$/i.test(url) ? 
                         `<video src="${url}" class="w-full h-24 object-cover" muted loop autoplay></video>` :
                         `<div class="w-full h-24 bg-gray-100 flex items-center justify-center text-xs text-gray-500">File</div>`}
@@ -64,9 +58,7 @@ function renderReports(filter = '') {
                   `).join('')}
                 </div>
               </div>` : ''}
-            <button onclick="deleteReport('${r.id}')" class="text-red-500 hover:text-red-700 text-sm">
-              🗑️ Delete
-            </button>
+            <button onclick="deleteReport('${r.id}')" class="text-red-500 hover:text-red-700 text-sm">🗑️ Delete</button>
           </div>
         `;
       }).join('');
@@ -76,24 +68,17 @@ function openPreview(url, isImage, isVideo) {
   const modal = document.getElementById('previewModal');
   const content = document.getElementById('modalContent');
   content.innerHTML = isImage 
-    ? `<img src="${url}" alt="Full view" class="max-w-[90%] max-h-[90vh]">`
+    ? `<img src="${url}" class="max-w-[90%] max-h-[90vh]">`
     : isVideo 
     ? `<video src="${url}" controls autoplay class="max-w-[90%] max-h-[90vh]"></video>`
     : '<p class="text-white text-xl">Cannot preview</p>';
   modal.style.display = 'flex';
 }
 
-document.getElementById('closeModal')?.addEventListener('click', () => {
-  document.getElementById('previewModal').style.display = 'none';
-});
-
-document.getElementById('previewModal')?.addEventListener('click', e => {
-  if (e.target.id === 'previewModal') document.getElementById('previewModal').style.display = 'none';
-});
+document.getElementById('closeModal')?.addEventListener('click', () => document.getElementById('previewModal').style.display = 'none');
 
 document.getElementById('reportForm').addEventListener('submit', async function(e) {
   e.preventDefault();
-
   console.log('Submit clicked');
 
   const formData = new FormData(e.target);
@@ -102,43 +87,36 @@ document.getElementById('reportForm').addEventListener('submit', async function(
 
   for (const file of files) {
     if (file.size > 50 * 1024 * 1024) {
-      alert(`File too large: ${file.name} (max 50 MB)`);
+      alert('File too large (max 50 MB)');
       continue;
     }
-
     const fileExt = file.name.split('.').pop();
     const filePath = `${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from('evidence')
-      .upload(filePath, file);
-
+    const { error: uploadError } = await supabase.storage.from('evidence').upload(filePath, file);
     if (uploadError) {
       console.error('Upload error:', uploadError);
-      alert(`Upload failed: ${uploadError.message}`);
+      alert('Upload failed: ' + uploadError.message);
       continue;
     }
-
     const { data: urlData } = supabase.storage.from('evidence').getPublicUrl(filePath);
     evidenceUrls.push(urlData.publicUrl);
   }
 
-  const { error: insertError } = await supabase
-    .from('reports')
-    .insert({
-      username: formData.get('username')?.trim() || 'Unknown',
-      reason: formData.get('reason')?.trim() || 'Other',
-      details: formData.get('details')?.trim() || '',
-      evidence: evidenceUrls.length ? evidenceUrls : null
-    });
+  const { error: insertError } = await supabase.from('reports').insert({
+    username: formData.get('username')?.trim() || 'Unknown',
+    reason: formData.get('reason')?.trim() || 'Other',
+    details: formData.get('details')?.trim() || '',
+    evidence: evidenceUrls.length ? evidenceUrls : null
+  });
 
   if (insertError) {
     console.error('Insert error:', insertError);
-    alert('Submit failed:\n' + (insertError.message || 'Check console'));
+    alert('Submit failed: ' + (insertError.message || 'Check console'));
     return;
   }
 
-  console.log('Report sent');
+  console.log('Report sent successfully');
   document.getElementById('successMessage').classList.remove('hidden');
   e.target.reset();
   document.getElementById('previewContainer').innerHTML = '';
@@ -208,10 +186,7 @@ document.getElementById('evidence').addEventListener('change', function() {
 document.getElementById('searchInput').addEventListener('input', e => renderReports(e.target.value));
 
 window.onload = () => {
-  console.log('Page loaded – connecting to Supabase');
+  console.log('✅ Script loaded successfully');
   loadReports();
   showSubmit();
-  supabase.channel('reports')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, loadReports)
-    .subscribe();
 };
