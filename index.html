@@ -412,67 +412,81 @@
       }
     }
 
-    document.getElementById('reportForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
+   document.getElementById('reportForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
 
-      // Cooldown check
-      const lastSubmit = localStorage.getItem('lastReportTime');
-      const now = Date.now();
-      if (lastSubmit && now - parseInt(lastSubmit) < COOLDOWN_MS) {
-        const remaining = Math.ceil((COOLDOWN_MS - (now - parseInt(lastSubmit))) / 1000);
-        document.getElementById('status').style.color = '#f85149';
-        document.getElementById('status').textContent = `Wait ${remaining} seconds before submitting another report.`;
-        setTimeout(() => document.getElementById('status').textContent = '', 5000);
-        return;
-      }
+  // Cooldown check (unchanged)
+  const lastSubmit = localStorage.getItem('lastReportTime');
+  const now = Date.now();
+  if (lastSubmit && now - parseInt(lastSubmit) < COOLDOWN_MS) {
+    const remaining = Math.ceil((COOLDOWN_MS - (now - parseInt(lastSubmit))) / 1000);
+    document.getElementById('status').style.color = '#f85149';
+    document.getElementById('status').textContent = `Wait ${remaining} seconds before submitting another report.`;
+    setTimeout(() => document.getElementById('status').textContent = '', 5000);
+    return;
+  }
 
-      const status = document.getElementById('status');
-      status.textContent = 'Submitting report...';
-      status.style.color = 'white';
+  const status = document.getElementById('status');
+  status.textContent = 'Submitting report...';
+  status.style.color = 'white';
 
-      const reported_user = document.getElementById('reported_user').value.trim() || null;
-      const reason = document.getElementById('reason').value.trim();
-      const punishment = document.getElementById('punishment').value.trim() || null;
-      const moderator = document.getElementById('moderator').value.trim() || null;
-      const link = document.getElementById('link').value.trim() || null;
+  const reported_user = document.getElementById('reported_user').value.trim() || null;
+  const reason = document.getElementById('reason').value.trim();
+  const punishment = document.getElementById('punishment').value.trim() || null;
+  const moderator = document.getElementById('moderator').value.trim() || null;
+  const link = document.getElementById('link').value.trim() || null;
 
-      let image_url = '';
-      let video_url = '';
+  let image_url = '';
+  let video_url = '';
 
-      const imageFile = document.getElementById('image').files[0];
-      const videoFile = document.getElementById('video').files[0];
+  const imageFile = document.getElementById('image').files[0];
+  const videoFile = document.getElementById('video').files[0];
 
-      try {
-        if (imageFile) {
-          const path = `images/${Date.now()}_${imageFile.name.replace(/\s+/g, '_')}`;
-          const { error: uploadError } = await sb.storage.from('report-media').upload(path, imageFile);
-          if (uploadError) throw uploadError;
-          const { data: urlData } = sb.storage.from('report-media').getPublicUrl(path);
-          image_url = urlData.publicUrl;
-        }
+  try {
+    if (imageFile) {
+      const path = `images/${Date.now()}_${imageFile.name.replace(/\s+/g, '_')}`;
+      const { error: uploadError } = await sb.storage.from('report-media').upload(path, imageFile);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = sb.storage.from('report-media').getPublicUrl(path);
+      image_url = urlData.publicUrl;
+    }
 
-        if (videoFile) {
-          const path = `videos/${Date.now()}_${videoFile.name.replace(/\s+/g, '_')}`;
-          const { error: uploadError } = await sb.storage.from('report-media').upload(path, videoFile);
-          if (uploadError) throw uploadError;
-          const { data: urlData } = sb.storage.from('report-media').getPublicUrl(path);
-          video_url = urlData.publicUrl;
-        }
+    if (videoFile) {
+      const path = `videos/${Date.now()}_${videoFile.name.replace(/\s+/g, '_')}`;
+      const { error: uploadError } = await sb.storage.from('report-media').upload(path, videoFile);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = sb.storage.from('report-media').getPublicUrl(path);
+      video_url = urlData.publicUrl;
+    }
 
-        const { error } = await sb
-          .from('reports')
-          .insert({
-            reported_user,
-            reason,
-            punishment,
-            moderator,
-            link,
-            image_url,
-            video_url
-          });
+    const { error } = await sb
+      .from('reports')
+      .insert({
+        reported_user,
+        reason,
+        punishment,
+        moderator,
+        link,
+        image_url,
+        video_url,
+        response: null  // FIX: Add this (or {} if column is jsonb)
+      });
 
-        if (error) throw error;
+    if (error) throw error;
 
+    localStorage.setItem('lastReportTime', now.toString());
+
+    status.style.color = '#2ea043';
+    status.textContent = 'Report submitted successfully!';
+    document.getElementById('reportForm').reset();
+
+    setTimeout(() => status.textContent = '', 4000);
+  } catch (err) {
+    status.style.color = '#f85149';
+    status.textContent = 'Submission failed: ' + (err.message || 'Unknown error');
+    console.error('Submission error:', err);
+  }
+});
         // Save submit timestamp
         localStorage.setItem('lastReportTime', now.toString());
 
