@@ -103,294 +103,308 @@
     </div>
   </div>
 
-  <script>
-    const supabaseUrl = 'https://ugijazxbscpiwavmkjbr.supabase.co';
-    const supabaseKey = 'sb_publishable_tUlhOkObHpTpwlh-9R7x0Q_1kd_q6qe';
-    const { createClient } = window.supabase;
-    const sb = createClient(supabaseUrl, supabaseKey);
+ <script>
+  const supabaseUrl = 'https://ugijazxbscpiwavmkjbr.supabase.co';
+  const supabaseKey = 'sb_publishable_tUlhOkObHpTpwlh-9R7x0Q_1kd_q6qe';
+  const { createClient } = window.supabase;
+  const sb = createClient(supabaseUrl, supabaseKey);
 
-    const ALLOWED_ADMIN_UUIDS = [
-      '43940f16-1cf6-4790-80fd-711c563362a2',
-      'c6d1bc4f-9824-4fa8-a1a6-83adb524b457',
-      '448d355f-ff7f-4ffd-be5f-096c1fcd2c26'
-    ];
+  const ALLOWED_ADMIN_UUIDS = [
+    '43940f16-1cf6-4790-80fd-711c563362a2',
+    'c6d1bc4f-9824-4fa8-a1a6-83adb524b457',
+    '448d355f-ff7f-4ffd-be5f-096c1fcd2c26'
+  ];
 
-    let allReports = [];
+  let allReports = [];
 
-    // Listen for auth changes
-    sb.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
-        location.reload();
-      } else if (event === 'SIGNED_IN' && session) {
-        checkAuthorization(session);
-      }
-    });
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT') {
+      location.reload();
+    } else if (event === 'SIGNED_IN' && session) {
+      checkAuthorization(session);
+    }
+  });
 
-    // Authorization check – allows access if Discord ID is in allowed_discord_ids OR if UUID is admin
-    async function checkAuthorization(session) {
-      if (!session) {
-        document.getElementById('login-screen').style.display = 'flex';
-        document.getElementById('main-content').style.display = 'none';
-        document.getElementById('denied-screen').style.display = 'none';
-        return;
-      }
+  async function checkAuthorization(session) {
+    if (!session) {
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('main-content').style.display = 'none';
+      document.getElementById('denied-screen').style.display = 'none';
+      return;
+    }
 
-      const userId = session.user.id;
-      let discordId = session.user.user_metadata?.sub || session.user.user_metadata?.provider_id;
+    const userId = session.user.id;
+    let discordId = session.user.user_metadata?.sub || session.user.user_metadata?.provider_id;
 
-      // Force string (Discord IDs are strings)
-      discordId = discordId ? String(discordId) : null;
+    // Force to string and trim
+    discordId = discordId ? String(discordId).trim() : null;
 
-      console.log('User UUID:', userId);
-      console.log('Discord ID from session:', discordId);
+    console.log('User UUID:', userId);
+    console.log('Discord ID from session (string):', discordId);
 
-      const isAdmin = ALLOWED_ADMIN_UUIDS.includes(userId);
+    const isAdmin = ALLOWED_ADMIN_UUIDS.includes(userId);
 
-      // Check allowed_discord_ids table
-      const { data: allowed, error } = await sb
+    // Auto-add Discord ID to table on first login (for admins)
+    if (isAdmin && discordId) {
+      const { data: existing } = await sb
         .from('allowed_discord_ids')
         .select('discord_id')
         .eq('discord_id', discordId);
 
-      if (error) {
-        console.error('Discord ID check error:', error);
-      }
-
-      const isAllowed = !error && allowed && allowed.length > 0;
-
-      console.log('Is allowed by Discord ID?', isAllowed);
-      console.log('Allowed rows found:', allowed);
-
-      if (!isAllowed && !isAdmin) {
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('main-content').style.display = 'none';
-        document.getElementById('denied-screen').style.display = 'flex';
-        return;
-      }
-
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('denied-screen').style.display = 'none';
-      document.getElementById('main-content').style.display = 'block';
-
-      if (isAdmin) {
-        document.getElementById('admin-panel').style.display = 'block';
-        loadAllowedIds();
-      }
-    }
-
-    // Initial check on load
-    (async () => {
-      const { data: { session } } = await sb.auth.getSession();
-      checkAuthorization(session);
-    })();
-
-    async function signInWithDiscord() {
-      const { error } = await sb.auth.signInWithOAuth({
-        provider: 'discord',
-        options: { redirectTo: window.location.href }
-      });
-      if (error) alert('Login error: ' + error.message);
-    }
-
-    function showTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-      document.getElementById(tabId).classList.add('active');
-      document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
-      document.querySelector(`nav a[href="#${tabId}"]`)?.classList.add('active');
-      if (tabId === 'view') loadReports();
-    }
-
-    async function loadReports() {
-      const list = document.getElementById('reports-list');
-      const noResults = document.getElementById('no-results');
-      list.innerHTML = 'Loading reports...';
-      noResults.style.display = 'none';
-
-      const { data, error } = await sb
-        .from('reports')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        list.innerHTML = `<p style="color:#f85149; text-align:center;">Error: ${error.message}</p>`;
-        return;
-      }
-
-      allReports = data || [];
-      if (allReports.length === 0) {
-        list.innerHTML = '<p style="text-align:center; color:#8b949e;">No reports yet.</p>';
-        return;
-      }
-      renderReports(allReports);
-    }
-
-    function renderReports(reports) {
-      const list = document.getElementById('reports-list');
-      const noResults = document.getElementById('no-results');
-      list.innerHTML = '';
-
-      if (reports.length === 0) {
-        noResults.style.display = 'block';
-        return;
-      }
-
-      noResults.style.display = 'none';
-      reports.forEach(r => {
-        const item = document.createElement('div');
-        item.className = 'report-item';
-        item.innerHTML = `
-          <strong>Reported user:</strong> ${r.reported_user || '—'}<br>
-          <strong>Reason:</strong> ${r.reason || '—'}<br>
-          <strong>Punishment:</strong> ${r.punishment || 'None'}<br>
-          <strong>Moderator:</strong> ${r.moderator || '—'}<br>
-          <strong>Submitted:</strong> ${new Date(r.created_at).toLocaleString()}<br>
-        `;
-        if (r.link) item.innerHTML += `<a href="${r.link}" target="_blank">Proof link</a><br>`;
-        if (r.image_url) item.innerHTML += `<img src="${r.image_url}" style="max-width:100%; margin-top:10px;" alt="image"><br>`;
-        if (r.video_url) item.innerHTML += `<video src="${r.video_url}" controls style="max-width:100%; margin-top:10px;"></video><br>`;
-
-        sb.auth.getUser().then(({ data: { user } }) => {
-          const isAdmin = ALLOWED_ADMIN_UUIDS.includes(user.id);
-          if (isAdmin) {
-            const delBtn = document.createElement('button');
-            delBtn.className = 'delete-btn';
-            delBtn.textContent = 'Delete';
-            delBtn.onclick = () => deleteReport(r.id, item);
-            item.appendChild(delBtn);
-          }
+      if (!existing || existing.length === 0) {
+        await sb.from('allowed_discord_ids').insert({
+          discord_id: discordId,
+          added_by: userId,
+          added_at: new Date().toISOString()
         });
-
-        list.appendChild(item);
-      });
-    }
-
-    document.getElementById('searchInput')?.addEventListener('input', e => {
-      const term = e.target.value.toLowerCase().trim();
-      if (!term) return renderReports(allReports);
-      const filtered = allReports.filter(r =>
-        [r.reported_user, r.reason, r.punishment, r.moderator, r.link]
-          .some(v => v?.toLowerCase().includes(term))
-      );
-      renderReports(filtered);
-    });
-
-    async function deleteReport(id, element) {
-      if (!confirm("Delete permanently?")) return;
-      try {
-        const { error } = await sb.from('reports').delete().eq('id', id);
-        if (error) throw error;
-        element.remove();
-        allReports = allReports.filter(r => r.id !== id);
-        renderReports(allReports);
-      } catch (err) {
-        alert("Delete failed: " + err.message);
+        console.log('Auto-added admin Discord ID to allowed_discord_ids');
       }
     }
 
-    document.getElementById('reportForm')?.addEventListener('submit', async e => {
-      e.preventDefault();
-      const status = document.getElementById('status');
-      status.textContent = 'Submitting...';
-      status.style.color = 'white';
+    // Check if Discord ID is allowed
+    const { data: allowed, error } = await sb
+      .from('allowed_discord_ids')
+      .select('*')
+      .eq('discord_id', discordId);
 
-      const { data: { user } } = await sb.auth.getUser();
-      const discordId = user?.user_metadata?.sub || null;
+    if (error) {
+      console.error('Query error:', error);
+    }
 
-      const formData = {
-        reported_user: document.getElementById('reported_user').value.trim() || null,
-        reason: document.getElementById('reason').value.trim(),
-        punishment: document.getElementById('punishment').value.trim() || null,
-        moderator: document.getElementById('moderator').value.trim() || null,
-        link: document.getElementById('link').value.trim() || null,
-        submitted_by_discord_id: discordId
-      };
+    const isAllowed = !error && allowed && allowed.length > 0;
 
-      const imageFile = document.getElementById('image').files[0];
-      const videoFile = document.getElementById('video').files[0];
+    console.log('Is allowed?', isAllowed);
+    console.log('Allowed rows found:', allowed);
 
-      try {
-        let image_url = '', video_url = '';
-        if (imageFile) {
-          const path = `images/${Date.now()}_${imageFile.name.replace(/\s+/g, '_')}`;
-          const { error: upErr } = await sb.storage.from('report-media').upload(path, imageFile);
-          if (upErr) throw upErr;
-          const { data } = sb.storage.from('report-media').getPublicUrl(path);
-          image_url = data.publicUrl;
-        }
-        if (videoFile) {
-          const path = `videos/${Date.now()}_${videoFile.name.replace(/\s+/g, '_')}`;
-          const { error: upErr } = await sb.storage.from('report-media').upload(path, videoFile);
-          if (upErr) throw upErr;
-          const { data } = sb.storage.from('report-media').getPublicUrl(path);
-          video_url = data.publicUrl;
-        }
+    if (!isAllowed && !isAdmin) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('main-content').style.display = 'none';
+      document.getElementById('denied-screen').style.display = 'flex';
+      return;
+    }
 
-        const { error } = await sb.from('reports').insert({ ...formData, image_url, video_url });
-        if (error) throw error;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('denied-screen').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
 
-        status.style.color = '#2ea043';
-        status.textContent = 'Submitted successfully!';
-        document.getElementById('reportForm').reset();
-        setTimeout(() => status.textContent = '', 4000);
-      } catch (err) {
-        status.style.color = '#f85149';
-        status.textContent = 'Failed: ' + (err.message || 'Unknown');
-        console.error(err);
-      }
-    });
-
-    async function addDiscordId() {
-      const input = document.getElementById('newDiscordId');
-      const discordId = input.value.trim();
-
-      if (!discordId || isNaN(discordId)) {
-        alert('Enter a valid numeric Discord ID');
-        return;
-      }
-
-      const { data: { user } } = await sb.auth.getUser();
-
-      const { error } = await sb.from('allowed_discord_ids').insert({
-        discord_id: discordId,
-        added_by: user.id
-      });
-
-      if (error) return alert('Failed: ' + error.message);
-      input.value = '';
+    if (isAdmin) {
+      document.getElementById('admin-panel').style.display = 'block';
       loadAllowedIds();
-      alert('Discord ID added!');
+    }
+  }
+
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    checkAuthorization(session);
+  })();
+
+  async function signInWithDiscord() {
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: 'discord',
+      options: { redirectTo: window.location.href }
+    });
+    if (error) alert('Login error: ' + error.message);
+  }
+
+  function showTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+    document.querySelector(`nav a[href="#${tabId}"]`)?.classList.add('active');
+    if (tabId === 'view') loadReports();
+  }
+
+  async function loadReports() {
+    const list = document.getElementById('reports-list');
+    const noResults = document.getElementById('no-results');
+    list.innerHTML = 'Loading reports...';
+    noResults.style.display = 'none';
+
+    const { data, error } = await sb
+      .from('reports')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      list.innerHTML = `<p style="color:#f85149; text-align:center;">Error: ${error.message}</p>`;
+      return;
     }
 
-    async function loadAllowedIds() {
-      const list = document.getElementById('allowed-list');
-      list.innerHTML = 'Loading...';
+    allReports = data || [];
+    if (allReports.length === 0) {
+      list.innerHTML = '<p style="text-align:center; color:#8b949e;">No reports yet.</p>';
+      return;
+    }
+    renderReports(allReports);
+  }
 
-      const { data, error } = await sb
-        .from('allowed_discord_ids')
-        .select('id, discord_id, added_at')
-        .order('added_at', { ascending: false });
+  function renderReports(reports) {
+    const list = document.getElementById('reports-list');
+    const noResults = document.getElementById('no-results');
+    list.innerHTML = '';
 
-      if (error) return list.innerHTML = 'Error loading list';
-      if (data.length === 0) return list.innerHTML = '<p style="color:#8b949e;">No IDs added yet.</p>';
+    if (reports.length === 0) {
+      noResults.style.display = 'block';
+      return;
+    }
 
-      list.innerHTML = '';
-      data.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'id-item';
-        div.innerHTML = `
-          <span>${item.discord_id}</span>
-          <button onclick="deleteDiscordId('${item.id}')" style="background:#da3633; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px;">Remove</button>
-        `;
-        list.appendChild(div);
+    noResults.style.display = 'none';
+    reports.forEach(r => {
+      const item = document.createElement('div');
+      item.className = 'report-item';
+      item.innerHTML = `
+        <strong>Reported user:</strong> ${r.reported_user || '—'}<br>
+        <strong>Reason:</strong> ${r.reason || '—'}<br>
+        <strong>Punishment:</strong> ${r.punishment || 'None'}<br>
+        <strong>Moderator:</strong> ${r.moderator || '—'}<br>
+        <strong>Submitted:</strong> ${new Date(r.created_at).toLocaleString()}<br>
+      `;
+      if (r.link) item.innerHTML += `<a href="${r.link}" target="_blank">Proof link</a><br>`;
+      if (r.image_url) item.innerHTML += `<img src="${r.image_url}" style="max-width:100%; margin-top:10px;" alt="image"><br>`;
+      if (r.video_url) item.innerHTML += `<video src="${r.video_url}" controls style="max-width:100%; margin-top:10px;"></video><br>`;
+
+      sb.auth.getUser().then(({ data: { user } }) => {
+        const isAdmin = ALLOWED_ADMIN_UUIDS.includes(user.id);
+        if (isAdmin) {
+          const delBtn = document.createElement('button');
+          delBtn.className = 'delete-btn';
+          delBtn.textContent = 'Delete';
+          delBtn.onclick = () => deleteReport(r.id, item);
+          item.appendChild(delBtn);
+        }
       });
+
+      list.appendChild(item);
+    });
+  }
+
+  document.getElementById('searchInput')?.addEventListener('input', e => {
+    const term = e.target.value.toLowerCase().trim();
+    if (!term) return renderReports(allReports);
+    const filtered = allReports.filter(r =>
+      [r.reported_user, r.reason, r.punishment, r.moderator, r.link]
+        .some(v => v?.toLowerCase().includes(term))
+    );
+    renderReports(filtered);
+  });
+
+  async function deleteReport(id, element) {
+    if (!confirm("Delete permanently?")) return;
+    try {
+      const { error } = await sb.from('reports').delete().eq('id', id);
+      if (error) throw error;
+      element.remove();
+      allReports = allReports.filter(r => r.id !== id);
+      renderReports(allReports);
+    } catch (err) {
+      alert("Delete failed: " + err.message);
+    }
+  }
+
+  document.getElementById('reportForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const status = document.getElementById('status');
+    status.textContent = 'Submitting...';
+    status.style.color = 'white';
+
+    const { data: { user } } = await sb.auth.getUser();
+    const discordId = user?.user_metadata?.sub || null;
+
+    const formData = {
+      reported_user: document.getElementById('reported_user').value.trim() || null,
+      reason: document.getElementById('reason').value.trim(),
+      punishment: document.getElementById('punishment').value.trim() || null,
+      moderator: document.getElementById('moderator').value.trim() || null,
+      link: document.getElementById('link').value.trim() || null,
+      submitted_by_discord_id: discordId
+    };
+
+    const imageFile = document.getElementById('image').files[0];
+    const videoFile = document.getElementById('video').files[0];
+
+    try {
+      let image_url = '', video_url = '';
+      if (imageFile) {
+        const path = `images/${Date.now()}_${imageFile.name.replace(/\s+/g, '_')}`;
+        const { error: upErr } = await sb.storage.from('report-media').upload(path, imageFile);
+        if (upErr) throw upErr;
+        const { data } = sb.storage.from('report-media').getPublicUrl(path);
+        image_url = data.publicUrl;
+      }
+      if (videoFile) {
+        const path = `videos/${Date.now()}_${videoFile.name.replace(/\s+/g, '_')}`;
+        const { error: upErr } = await sb.storage.from('report-media').upload(path, videoFile);
+        if (upErr) throw upErr;
+        const { data } = sb.storage.from('report-media').getPublicUrl(path);
+        video_url = data.publicUrl;
+      }
+
+      const { error } = await sb.from('reports').insert({ ...formData, image_url, video_url });
+      if (error) throw error;
+
+      status.style.color = '#2ea043';
+      status.textContent = 'Submitted successfully!';
+      document.getElementById('reportForm').reset();
+      setTimeout(() => status.textContent = '', 4000);
+    } catch (err) {
+      status.style.color = '#f85149';
+      status.textContent = 'Failed: ' + (err.message || 'Unknown');
+      console.error(err);
+    }
+  });
+
+  async function addDiscordId() {
+    const input = document.getElementById('newDiscordId');
+    const discordId = input.value.trim();
+
+    if (!discordId || isNaN(discordId)) {
+      alert('Enter a valid numeric Discord ID');
+      return;
     }
 
-    async function deleteDiscordId(id) {
-      if (!confirm('Remove this Discord ID?')) return;
-      const { error } = await sb.from('allowed_discord_ids').delete().eq('id', id);
-      if (error) alert('Delete failed');
-      else loadAllowedIds();
-    }
-  </script>
+    const { data: { user } } = await sb.auth.getUser();
+
+    const { error } = await sb.from('allowed_discord_ids').insert({
+      discord_id: discordId,
+      added_by: user.id
+    });
+
+    if (error) return alert('Failed: ' + error.message);
+    input.value = '';
+    loadAllowedIds();
+    alert('Discord ID added!');
+  }
+
+  async function loadAllowedIds() {
+    const list = document.getElementById('allowed-list');
+    list.innerHTML = 'Loading...';
+
+    const { data, error } = await sb
+      .from('allowed_discord_ids')
+      .select('id, discord_id, added_at')
+      .order('added_at', { ascending: false });
+
+    if (error) return list.innerHTML = 'Error loading list';
+    if (data.length === 0) return list.innerHTML = '<p style="color:#8b949e;">No IDs added yet.</p>';
+
+    list.innerHTML = '';
+    data.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'id-item';
+      div.innerHTML = `
+        <span>${item.discord_id}</span>
+        <button onclick="deleteDiscordId('${item.id}')" style="background:#da3633; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px;">Remove</button>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  async function deleteDiscordId(id) {
+    if (!confirm('Remove this Discord ID?')) return;
+    const { error } = await sb.from('allowed_discord_ids').delete().eq('id', id);
+    if (error) alert('Delete failed');
+    else loadAllowedIds();
+  }
+</script>
 </body>
 </html>
