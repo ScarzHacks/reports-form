@@ -134,26 +134,44 @@
     }
 
     const userId = session.user.id;
-    let username = session.user.user_metadata?.username || session.user.user_metadata?.full_name || null;
+    let username = session.user.user_metadata?.username || 
+                   session.user.user_metadata?.full_name || 
+                   session.user.user_metadata?.name || null;
 
-    // Trim and force string
-    username = username ? String(username).trim() : null;
+    username = username ? String(username).trim().toLowerCase() : null;
 
     console.log('User UUID:', userId);
-    console.log('Username from session:', username);
+    console.log('Username from Discord session:', username);
 
     const isAdmin = ALLOWED_ADMIN_UUIDS.includes(userId);
 
+    // Auto-add admin username to table on first login
+    if (isAdmin && username) {
+      const { data: existing } = await sb
+        .from('allowed_usernames')
+        .select('username')
+        .eq('username', username)
+        .maybeSingle();
+
+      if (!existing) {
+        await sb.from('allowed_usernames').insert({
+          username: username,
+          added_by: userId,
+          added_at: new Date().toISOString()
+        });
+        console.log('Auto-added your username to allowed_usernames');
+      }
+    }
+
+    // Check if username is allowed
     const { data: allowed, error } = await sb
       .from('allowed_usernames')
       .select('username')
       .eq('username', username);
 
-    if (error) {
-      console.error('Username check error:', error);
-    }
+    if (error) console.error('Username check error:', error);
 
-    const isAllowed = !error && allowed && allowed.length > 0;
+    const isAllowed = allowed && allowed.length > 0;
 
     console.log('Is allowed?', isAllowed);
     console.log('Allowed rows found:', allowed);
@@ -351,7 +369,7 @@
       added_by: user.id
     });
 
-    if (error) return alert('Failed: ' + error.message);
+    if (error) return alert('Failed to add username: ' + error.message);
     input.value = '';
     loadAllowedIds();
     alert('Username added!');
@@ -375,13 +393,13 @@
       div.className = 'id-item';
       div.innerHTML = `
         <span>${item.username}</span>
-        <button onclick="deleteDiscordId('${item.id}')" style="background:#da3633; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px;">Remove</button>
+        <button onclick="deleteUsername('${item.id}')" style="background:#da3633; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px;">Remove</button>
       `;
       list.appendChild(div);
     });
   }
 
-  async function deleteDiscordId(id) {
+  async function deleteUsername(id) {
     if (!confirm('Remove this username?')) return;
     const { error } = await sb.from('allowed_usernames').delete().eq('id', id);
     if (error) alert('Delete failed');
