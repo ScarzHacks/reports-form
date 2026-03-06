@@ -1,4 +1,109 @@
-<script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EW Mod Panel</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #0d1117; color: #e6edf3; }
+    header { background: #1f6feb; color: white; padding: 20px; text-align: center; }
+    nav { display: flex; background: #0d47a1; }
+    nav a { flex: 1; color: white; text-align: center; padding: 14px; text-decoration: none; font-weight: bold; transition: background 0.2s; }
+    nav a.active { background: #1f6feb; }
+    nav a:hover { background: #388bfd; }
+    .container { max-width: 760px; margin: 30px auto; padding: 0 20px; }
+    form { background: rgba(22, 27, 34, 0.92); padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); color: #e6edf3; }
+    label { display: block; margin: 18px 0 6px; font-weight: 600; }
+    input, textarea { width: 100%; padding: 11px; border: 1px solid #30363d; border-radius: 6px; box-sizing: border-box; font-size: 16px; background: #0d1117; color: #e6edf3; }
+    textarea { resize: vertical; min-height: 100px; }
+    button { background: #238636; color: white; border: none; padding: 14px 28px; border-radius: 6px; cursor: pointer; font-size: 16px; margin-top: 20px; transition: background 0.2s; }
+    button:hover { background: #2ea043; }
+    #status { margin-top: 16px; font-weight: bold; text-align: center; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .report-item { background: rgba(22, 27, 34, 0.92); padding: 20px; margin: 20px 0; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.4); line-height: 1.6; position: relative; }
+    .delete-btn { background: #da3633; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; position: absolute; top: 15px; right: 15px; }
+    .delete-btn:hover { background: #f85149; }
+    #search-container { margin: 20px 0; text-align: center; }
+    #searchInput { width: 100%; max-width: 500px; padding: 12px; font-size: 16px; border: 1px solid #30363d; border-radius: 6px; background: #0d1117; color: #e6edf3; }
+    #no-results { text-align: center; color: #8b949e; font-style: italic; margin: 30px 0; display: none; }
+    #login-screen, #denied-screen { position: fixed; inset: 0; background: #000; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 1.8rem; text-align: center; z-index: 9999; padding: 20px; }
+    #login-screen button { margin-top: 30px; padding: 16px 32px; background: #5865F2; color: white; border: none; border-radius: 8px; font-size: 1.5rem; cursor: pointer; }
+    #logout-btn { position: fixed; top: 10px; right: 10px; padding: 10px 20px; background: #da3633; color: white; border: none; border-radius: 6px; cursor: pointer; z-index: 10000; }
+    #admin-panel { position: fixed; top: 80px; right: 20px; width: 320px; background: rgba(22, 27, 34, 0.95); padding: 20px; border-radius: 12px; box-shadow: 0 6px 30px rgba(0,0,0,0.6); display: none; z-index: 1000; color: white; overflow-y: auto; max-height: 70vh; }
+    #admin-panel h3 { margin: 0 0 15px 0; text-align: center; }
+    #newDiscordId { width: 100%; padding: 10px; margin-bottom: 10px; background: #0d1117; border: 1px solid #30363d; color: white; border-radius: 6px; }
+    #admin-panel button { width: 100%; background: #238636; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; margin-bottom: 10px; }
+    .id-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #30363d; }
+    .id-item button { background: #da3633; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div id="login-screen">
+    <h2>EW Mod Panel</h2>
+    <p>Sign in with Discord to access the panel.</p>
+    <button onclick="signInWithDiscord()">Sign in with Discord</button>
+  </div>
+
+  <div id="denied-screen" style="display:none;">
+    <h2>Access Denied</h2>
+    <p>Your Discord account is not authorized.</p>
+    <button onclick="sb.auth.signOut().then(() => location.reload())">Logout & Try Again</button>
+  </div>
+
+  <div id="main-content" style="display:none;">
+    <button id="logout-btn" onclick="sb.auth.signOut().then(() => location.reload())">Logout</button>
+
+    <div id="admin-panel">
+      <h3>Manage Allowed Discord IDs</h3>
+      <input type="text" id="newDiscordId" placeholder="Discord ID (e.g. 1163584865170632816)">
+      <button onclick="addDiscordId()">Add ID</button>
+      <div id="allowed-list"></div>
+    </div>
+
+    <header>
+      <h1>EW Mod Panel</h1>
+    </header>
+
+    <nav>
+      <a href="#submit" class="active" onclick="showTab('submit')">Submit Report</a>
+      <a href="#view" onclick="showTab('view')">View All Reports</a>
+    </nav>
+
+    <div class="container">
+      <div id="submit" class="tab-content active">
+        <form id="reportForm">
+          <label>Reported User Name</label>
+          <input id="reported_user" placeholder="Username or ID" required>
+          <label>Reason for Report</label>
+          <textarea id="reason" placeholder="Describe the incident in detail..." required></textarea>
+          <label>Proposed Punishment</label>
+          <input id="punishment" placeholder="e.g. Warning / 3-day mute / Permanent ban">
+          <label>Moderator Who Took Action</label>
+          <input id="moderator" placeholder="Your username / Moderator name" required>
+          <label>Additional Link (proof, screenshot, clip...)</label>
+          <input id="link" placeholder="https://" type="url">
+          <label>Image Proof (optional)</label>
+          <input type="file" id="image" accept="image/*">
+          <label>Video Proof (optional)</label>
+          <input type="file" id="video" accept="video/*">
+          <button type="submit">Submit Report</button>
+        </form>
+        <div id="status"></div>
+      </div>
+
+      <div id="view" class="tab-content">
+        <div id="search-container">
+          <input type="text" id="searchInput" placeholder="Search reports...">
+        </div>
+        <div id="reports-list">Loading reports...</div>
+        <div id="no-results">No matching reports found.</div>
+      </div>
+    </div>
+  </div>
+
+ <script>
   const supabaseUrl = 'https://ugijazxbscpiwavmkjbr.supabase.co';
   const supabaseKey = 'sb_publishable_tUlhOkObHpTpwlh-9R7x0Q_1kd_q6qe';
   const { createClient } = window.supabase;
