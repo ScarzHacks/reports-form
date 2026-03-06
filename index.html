@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EW Mod Panel</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -175,101 +174,61 @@
       cursor: pointer;
       z-index: 10000;
     }
-
-    /* Background image only on reports tab */
-    #view {
-      position: relative;
-      min-height: 100vh;
-    }
-    #view::before {
-      content: "";
+    /* Side admin panel */
+    #admin-panel {
       position: fixed;
-      inset: 0;
-      background-image: url('https://cdn.discordapp.com/attachments/1461528008950157505/1477723479859134588/thumbnail_1.png?ex=69a5ccbc&is=69a47b3c&hm=792ee17eb023081981388110e5349a495896ea979f6671021c927db932595641&');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      background-attachment: fixed;
-      opacity: 0.22;
-      z-index: -2;
-    }
-    #view::after {
-      content: "";
-      position: fixed;
-      inset: 0;
-      background: rgba(13, 17, 23, 0.65);
-      z-index: -1;
-    }
-    #view .container,
-    #view #search-container,
-    #view #reports-list,
-    #view #no-results {
-      position: relative;
-      z-index: 1;
-    }
-
-    /* RGB Glowing Orbs */
-    .orb {
-      position: absolute;
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: -1;
-      opacity: 0.4;
-      animation: floatOrb 22s infinite ease-in-out, pulseOrb 7s infinite alternate;
-    }
-    #view::after::before,
-    #view::after::after,
-    #view::after::before::before {
-      content: "";
-      position: absolute;
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: -1;
-      opacity: 0.4;
-      animation: floatOrb 22s infinite ease-in-out, pulseOrb 7s infinite alternate;
-    }
-    #view::after::before {
-      width: 380px;
-      height: 380px;
-      background: radial-gradient(circle at 35% 45%, #ff1a1a 10%, transparent 70%);
-      box-shadow: 0 0 140px #ff1a1a, inset 0 0 70px #660000;
-      top: 12%;
-      left: 5%;
-      animation-delay: 0s;
-    }
-    #view::after::after {
+      top: 80px;
+      right: 20px;
       width: 320px;
-      height: 320px;
-      background: radial-gradient(circle at 60% 65%, #330000 15%, transparent 65%);
-      box-shadow: 0 0 120px #330000, inset 0 0 60px #000000;
-      bottom: 18%;
-      right: 10%;
-      animation-delay: 5s;
+      background: rgba(22, 27, 34, 0.95);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 6px 30px rgba(0,0,0,0.6);
+      display: none;
+      z-index: 1000;
+      color: white;
+      overflow-y: auto;
+      max-height: 70vh;
     }
-    #view::after::before::before {
-      width: 450px;
-      height: 450px;
-      background: radial-gradient(circle at 50% 30%, #990000 5%, transparent 75%);
-      box-shadow: 0 0 160px #990000, inset 0 0 80px #330000;
-      top: 40%;
-      left: 50%;
-      transform: translateX(-50%);
-      animation-delay: 11s;
+    #admin-panel h3 {
+      margin: 0 0 15px 0;
+      text-align: center;
     }
-    @keyframes floatOrb {
-      0%, 100% { transform: translate(0, 0); }
-      25% { transform: translate(60px, -40px); }
-      50% { transform: translate(-30px, 70px); }
-      75% { transform: translate(-80px, -30px); }
+    #newDiscordId {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      color: white;
+      border-radius: 6px;
     }
-    @keyframes pulseOrb {
-      0% { opacity: 0.28; transform: scale(0.92); }
-      100% { opacity: 0.55; transform: scale(1.18); }
+    #admin-panel button {
+      width: 100%;
+      background: #238636;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    .id-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #30363d;
+    }
+    .id-item button {
+      background: #da3633;
+      padding: 5px 10px;
+      font-size: 12px;
+      width: auto;
     }
   </style>
 </head>
 <body>
-
   <!-- Login screen -->
   <div id="login-screen">
     <h2>EW Mod Panel</h2>
@@ -277,16 +236,24 @@
     <button onclick="signInWithDiscord()">Sign in with Discord</button>
   </div>
 
-  <!-- Access denied screen (wrong ID) -->
+  <!-- Access denied screen -->
   <div id="denied-screen" style="display:none;">
     <h2>Access Denied</h2>
-    <p>Your Discord account is not authorized for this panel.</p>
+    <p>Your Discord account is not authorized.</p>
     <button onclick="sb.auth.signOut().then(() => location.reload())">Logout & Try Again</button>
   </div>
 
-  <!-- Main content (hidden until authorized) -->
+  <!-- Main content -->
   <div id="main-content" style="display:none;">
     <button id="logout-btn" onclick="sb.auth.signOut().then(() => location.reload())">Logout</button>
+
+    <!-- Side admin panel - only you see this -->
+    <div id="admin-panel">
+      <h3>Manage Allowed Discord IDs</h3>
+      <input type="text" id="newDiscordId" placeholder="Discord ID (e.g. 1163584865170632816)">
+      <button onclick="addDiscordId()">Add ID</button>
+      <div id="allowed-list"></div>
+    </div>
 
     <header>
       <h1>EW Mod Panel</h1>
@@ -298,34 +265,25 @@
     </nav>
 
     <div class="container">
-
       <!-- Submit tab -->
       <div id="submit" class="tab-content active">
         <form id="reportForm">
           <label>Reported User Name</label>
           <input id="reported_user" placeholder="Username or ID" required>
-
           <label>Reason for Report</label>
           <textarea id="reason" placeholder="Describe the incident in detail..." required></textarea>
-
           <label>Proposed Punishment</label>
           <input id="punishment" placeholder="e.g. Warning / 3-day mute / Permanent ban">
-
           <label>Moderator Who Took Action</label>
           <input id="moderator" placeholder="Your username / Moderator name" required>
-
           <label>Additional Link (proof, screenshot, clip...)</label>
           <input id="link" placeholder="https://" type="url">
-
           <label>Image Proof (optional)</label>
           <input type="file" id="image" accept="image/*">
-
           <label>Video Proof (optional)</label>
           <input type="file" id="video" accept="video/*">
-
           <button type="submit">Submit Report</button>
         </form>
-
         <div id="status"></div>
       </div>
 
@@ -337,7 +295,6 @@
         <div id="reports-list">Loading reports...</div>
         <div id="no-results">No matching reports found.</div>
       </div>
-
     </div>
   </div>
 
@@ -347,22 +304,16 @@
     const { createClient } = window.supabase;
     const sb = createClient(supabaseUrl, supabaseKey);
 
-    // === ONLY THESE Supabase user IDs (UUIDs) can access the entire site ===
-    // Your ID is already added below
     const ALLOWED_USER_IDS = [
-      '43940f16-1cf6-4790-80fd-711c563362a2'  // Your UID
-      // Add more trusted users here if needed, e.g.:
-      // 'another-uuid-here-1234-5678-9abc-def012345678'
+      '43940f16-1cf6-4790-80fd-711c563362a2' // Your UUID
     ];
 
     let allReports = [];
 
-    // Check login and authorization on load
+    // Check login and authorization
     (async () => {
       const { data: { session } } = await sb.auth.getSession();
-
       if (!session) {
-        // Not logged in → show login screen
         document.getElementById('login-screen').style.display = 'flex';
         document.getElementById('main-content').style.display = 'none';
         document.getElementById('denied-screen').style.display = 'none';
@@ -370,43 +321,38 @@
       }
 
       const userId = session.user.id;
-
-      // Check if this user ID is allowed
       if (!ALLOWED_USER_IDS.includes(userId)) {
-        // Unauthorized → show denied screen
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('main-content').style.display = 'none';
         document.getElementById('denied-screen').style.display = 'flex';
         return;
       }
 
-      // Authorized → show main content
+      // Authorized
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('denied-screen').style.display = 'none';
       document.getElementById('main-content').style.display = 'block';
 
-      console.log('Authorized access granted for user ID:', userId);
+      // Show admin panel only to you
+      if (userId === '43940f16-1cf6-4790-80fd-711c563362a2') {
+        document.getElementById('admin-panel').style.display = 'block';
+        loadAllowedIds();
+      }
     })();
 
-    // Discord login function
     async function signInWithDiscord() {
       const { error } = await sb.auth.signInWithOAuth({
         provider: 'discord',
-        options: {
-          redirectTo: window.location.href  // returns to current page after login
-        }
+        options: { redirectTo: window.location.href }
       });
       if (error) alert('Login error: ' + error.message);
     }
 
-    // Tab switching
     function showTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
       document.getElementById(tabId).classList.add('active');
-
       document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
       document.querySelector(`nav a[href="#${tabId}"]`)?.classList.add('active');
-
       if (tabId === 'view') loadReports();
     }
 
@@ -427,12 +373,10 @@
       }
 
       allReports = data || [];
-
       if (allReports.length === 0) {
         list.innerHTML = '<p style="text-align:center; color:#8b949e;">No reports yet.</p>';
         return;
       }
-
       renderReports(allReports);
     }
 
@@ -447,7 +391,6 @@
       }
 
       noResults.style.display = 'none';
-
       reports.forEach(r => {
         const item = document.createElement('div');
         item.className = 'report-item';
@@ -475,22 +418,18 @@
     document.getElementById('searchInput')?.addEventListener('input', e => {
       const term = e.target.value.toLowerCase().trim();
       if (!term) return renderReports(allReports);
-
       const filtered = allReports.filter(r =>
         [r.reported_user, r.reason, r.punishment, r.moderator, r.link]
           .some(v => v?.toLowerCase().includes(term))
       );
-
       renderReports(filtered);
     });
 
     async function deleteReport(id, element) {
       if (!confirm("Delete permanently?")) return;
-
       try {
         const { error } = await sb.from('reports').delete().eq('id', id);
         if (error) throw error;
-
         element.remove();
         allReports = allReports.filter(r => r.id !== id);
         renderReports(allReports);
@@ -501,10 +440,12 @@
 
     document.getElementById('reportForm')?.addEventListener('submit', async e => {
       e.preventDefault();
-
       const status = document.getElementById('status');
       status.textContent = 'Submitting...';
       status.style.color = 'white';
+
+      const { data: { user } } = await sb.auth.getUser();
+      const discordId = user?.user_metadata?.sub || null;
 
       const formData = {
         reported_user: document.getElementById('reported_user').value.trim() || null,
@@ -512,6 +453,7 @@
         punishment: document.getElementById('punishment').value.trim() || null,
         moderator: document.getElementById('moderator').value.trim() || null,
         link: document.getElementById('link').value.trim() || null,
+        submitted_by_discord_id: discordId
       };
 
       const imageFile = document.getElementById('image').files[0];
@@ -519,7 +461,6 @@
 
       try {
         let image_url = '', video_url = '';
-
         if (imageFile) {
           const path = `images/${Date.now()}_${imageFile.name.replace(/\s+/g, '_')}`;
           const { error: upErr } = await sb.storage.from('report-media').upload(path, imageFile);
@@ -527,7 +468,6 @@
           const { data } = sb.storage.from('report-media').getPublicUrl(path);
           image_url = data.publicUrl;
         }
-
         if (videoFile) {
           const path = `videos/${Date.now()}_${videoFile.name.replace(/\s+/g, '_')}`;
           const { error: upErr } = await sb.storage.from('report-media').upload(path, videoFile);
@@ -542,7 +482,6 @@
         status.style.color = '#2ea043';
         status.textContent = 'Submitted successfully!';
         document.getElementById('reportForm').reset();
-
         setTimeout(() => status.textContent = '', 4000);
       } catch (err) {
         status.style.color = '#f85149';
@@ -550,6 +489,53 @@
         console.error(err);
       }
     });
+
+    // Admin panel functions (only visible to you)
+    async function addDiscordId() {
+      const input = document.getElementById('newDiscordId');
+      const discordId = input.value.trim();
+      if (!discordId || isNaN(discordId)) return alert('Enter a valid numeric Discord ID');
+
+      const { error } = await sb.from('allowed_discord_ids').insert({
+        discord_id: discordId,
+        added_by: sb.auth.getUser().then(r => r.data.user.id)
+      });
+
+      if (error) return alert('Failed: ' + error.message);
+      input.value = '';
+      loadAllowedIds();
+    }
+
+    async function loadAllowedIds() {
+      const list = document.getElementById('allowed-list');
+      list.innerHTML = 'Loading...';
+
+      const { data, error } = await sb
+        .from('allowed_discord_ids')
+        .select('id, discord_id, added_at')
+        .order('added_at', { ascending: false });
+
+      if (error) return list.innerHTML = 'Error loading list';
+      if (data.length === 0) return list.innerHTML = '<p style="color:#8b949e;">No IDs added yet.</p>';
+
+      list.innerHTML = '';
+      data.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'id-item';
+        div.innerHTML = `
+          <span>${item.discord_id}</span>
+          <button onclick="deleteDiscordId('${item.id}')" style="background:#da3633; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px;">Remove</button>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    async function deleteDiscordId(id) {
+      if (!confirm('Remove this Discord ID?')) return;
+      const { error } = await sb.from('allowed_discord_ids').delete().eq('id', id);
+      if (error) alert('Delete failed');
+      else loadAllowedIds();
+    }
   </script>
 </body>
 </html>
