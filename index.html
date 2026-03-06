@@ -312,27 +312,52 @@
 
   <script>
     // ────────────────────────────────────────────────
-    // PAGE ACCESS PASSWORD (client-side for now)
+    // SERVER-SIDE PASSWORD VERIFICATION ENDPOINT
     // ────────────────────────────────────────────────
-    const PAGE_PASSWORD = "EW123";
-
-    const enteredPagePw = prompt("Enter password to access EW Mod Panel:");
-
-    if (enteredPagePw !== PAGE_PASSWORD) {
-      document.getElementById('blocked').style.display = 'flex';
-      document.body.innerHTML = document.getElementById('blocked').outerHTML;
-      throw new Error("Page access denied");
-    }
+    const PASSWORD_VERIFY_URL = 'https://ugijazxbscpiwavmkjbr.supabase.co/functions/v1/verify-passwords';
 
     // ────────────────────────────────────────────────
-    // DELETE PASSWORD (client-side for now)
+    // PAGE ACCESS CHECK (server-side)
     // ────────────────────────────────────────────────
-    const DELETE_PASSWORD = "4221";
+    (async () => {
+      const entered = prompt("Enter password to access EW Mod Panel:");
 
-    // ────────────────────────────────────────────────
-    // REPORT COOLDOWN (1 minute)
-    // ────────────────────────────────────────────────
-    const COOLDOWN_MS = 60 * 1000;
+      if (!entered) {
+        document.body.innerHTML = '<div style="position:fixed;inset:0;background:#000;color:white;display:flex;align-items:center;justify-content:center;font-size:2rem;text-align:center;padding:20px;">Access Denied</div>';
+        return;
+      }
+
+      try {
+        const res = await fetch(PASSWORD_VERIFY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'page', password: entered })
+        });
+
+        console.log('Auth response status:', res.status); // debug line
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error('Auth function error:', res.status, errorText);
+          throw new Error(`Auth check failed (status ${res.status}): ${errorText}`);
+        }
+
+        const { allowed } = await res.json();
+
+        if (!allowed) {
+          document.body.innerHTML = '<div style="position:fixed;inset:0;background:#000;color:white;display:flex;align-items:center;justify-content:center;font-size:2rem;text-align:center;padding:20px;">Incorrect password</div>';
+          return;
+        }
+
+        // Correct → show site
+        document.getElementById('blocked').style.display = 'none';
+      } catch (err) {
+        console.error('Page auth error:', err);
+        document.body.innerHTML = `<div style="position:fixed;inset:0;background:#000;color:white;display:flex;align-items:center;justify-content:center;font-size:2rem;text-align:center;padding:20px;">
+          Server error: ${err.message || 'Unknown issue'}<br><br>Please wait a moment and refresh, or check Supabase function status.
+        </div>`;
+      }
+    })();
 
     // ────────────────────────────────────────────────
     // SUPABASE CLIENT
@@ -346,16 +371,16 @@
     let allReports = [];
 
     // ────────────────────────────────────────────────
-    // TAB SWITCHING (fixes "showTab is not defined")
+    // TAB SWITCHING
     // ────────────────────────────────────────────────
     function showTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-      const target = document.getElementById(tabId);
-      if (target) target.classList.add('active');
+      const targetTab = document.getElementById(tabId);
+      if (targetTab) targetTab.classList.add('active');
 
       document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
-      const link = document.querySelector(`nav a[href="#${tabId}"]`);
-      if (link) link.classList.add('active');
+      const activeLink = document.querySelector(`nav a[href="#${tabId}"]`);
+      if (activeLink) activeLink.classList.add('active');
 
       if (tabId === 'view') loadReports();
     }
@@ -372,15 +397,15 @@
         .order('created_at', { ascending: false });
 
       if (error) {
-        list.innerHTML = `<p style="color:#f85149; text-align:center;">Error: ${error.message}</p>`;
-        console.error(error);
+        list.innerHTML = `<p style="color:#f85149; text-align:center;">Error loading reports: ${error.message}</p>`;
+        console.error('Load error:', error);
         return;
       }
 
       allReports = data || [];
 
       if (allReports.length === 0) {
-        list.innerHTML = '<p style="text-align:center; color:#8b949e;">No reports yet.</p>';
+        list.innerHTML = '<p style="text-align:center; color:#8b949e; font-style:italic;">No reports have been submitted yet.</p>';
         return;
       }
 
@@ -399,127 +424,182 @@
 
       noResults.style.display = 'none';
 
-      reports.forEach(r => {
+      reports.forEach(report => {
         const item = document.createElement('div');
         item.className = 'report-item';
         item.innerHTML = `
-          <strong>Reported user:</strong> ${r.reported_user || '—'}<br>
-          <strong>Reason:</strong> ${r.reason || '—'}<br>
-          <strong>Punishment:</strong> ${r.punishment || 'None'}<br>
-          <strong>Moderator:</strong> ${r.moderator || '—'}<br>
-          <strong>Submitted:</strong> ${new Date(r.created_at).toLocaleString()}<br>
+          <strong>Reported user:</strong> ${report.reported_user || '—'}<br>
+          <strong>Reason:</strong> ${report.reason || '—'}<br>
+          <strong>Punishment:</strong> ${report.punishment || 'None specified'}<br>
+          <strong>Moderator:</strong> ${report.moderator || '—'}<br>
+          <strong>Submitted:</strong> ${new Date(report.created_at).toLocaleString()}<br>
         `;
-        if (r.link) item.innerHTML += `<a href="${r.link}" target="_blank">Proof link</a><br>`;
-        if (r.image_url) item.innerHTML += `<img src="${r.image_url}" style="max-width:100%; margin-top:10px;" alt="image"><br>`;
-        if (r.video_url) item.innerHTML += `<video src="${r.video_url}" controls style="max-width:100%; margin-top:10px;"></video><br>`;
 
-        const delBtn = document.createElement('button');
-        delBtn.className = 'delete-btn';
-        delBtn.textContent = 'Delete';
-        delBtn.onclick = () => deleteReport(r.id, item);
-        item.appendChild(delBtn);
+        if (report.link) {
+          item.innerHTML += `<strong>Proof link:</strong> <a href="${report.link}" target="_blank" rel="noopener noreferrer">${report.link}</a><br>`;
+        }
+        if (report.image_url) {
+          item.innerHTML += `<img src="${report.image_url}" style="max-width:100%; margin-top:12px; border-radius:8px;" alt="Proof image"><br>`;
+        }
+        if (report.video_url) {
+          item.innerHTML += `<video src="${report.video_url}" controls style="max-width:100%; margin-top:12px; border-radius:8px;"></video><br>`;
+        }
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.onclick = () => deleteReport(report.id, item);
+        item.appendChild(deleteBtn);
 
         list.appendChild(item);
       });
     }
 
-    document.getElementById('searchInput')?.addEventListener('input', e => {
+    document.getElementById('searchInput').addEventListener('input', function(e) {
       const term = e.target.value.toLowerCase().trim();
-      if (!term) return renderReports(allReports);
 
-      const filtered = allReports.filter(r =>
-        [r.reported_user, r.reason, r.punishment, r.moderator, r.link]
-          .some(v => v?.toLowerCase().includes(term))
-      );
+      if (!term) {
+        renderReports(allReports);
+        return;
+      }
+
+      const filtered = allReports.filter(report => {
+        return (
+          (report.reported_user || '').toLowerCase().includes(term) ||
+          (report.reason || '').toLowerCase().includes(term) ||
+          (report.punishment || '').toLowerCase().includes(term) ||
+          (report.moderator || '').toLowerCase().includes(term) ||
+          (report.link || '').toLowerCase().includes(term)
+        );
+      });
 
       renderReports(filtered);
     });
 
-    async function deleteReport(id, element) {
-      const pw = prompt("Enter delete password:");
-      if (pw !== DELETE_PASSWORD) {
-        alert("Incorrect delete password.");
-        return;
-      }
+    async function deleteReport(reportId, reportElement) {
+      const entered = prompt("Enter delete password:");
 
-      if (!confirm("Delete permanently?")) return;
+      if (!entered) return;
 
       try {
-        const { error } = await sb.from('reports').delete().eq('id', id);
-        if (error) throw error;
+        const res = await fetch(PASSWORD_VERIFY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'delete', password: entered })
+        });
 
-        element.remove();
-        allReports = allReports.filter(r => r.id !== id);
+        console.log('Delete auth status:', res.status);
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error('Delete auth error:', res.status, errorText);
+          throw new Error(`Delete auth failed (status ${res.status})`);
+        }
+
+        const { allowed } = await res.json();
+
+        if (!allowed) {
+          alert("Incorrect delete password.");
+          return;
+        }
+
+        if (!confirm('Delete this report permanently? This cannot be undone.')) return;
+
+        const { data, error } = await sb
+          .from('reports')
+          .delete()
+          .eq('id', reportId)
+          .select();
+
+        if (error) throw error;
+        if (!data || data.length === 0) {
+          throw new Error('Delete blocked or row not found');
+        }
+
+        reportElement.remove();
+        allReports = allReports.filter(r => r.id !== reportId);
         renderReports(allReports);
+
+        console.log('Report deleted successfully (ID:', reportId, ')');
       } catch (err) {
-        alert("Delete failed: " + err.message);
+        console.error('Delete failed:', err);
+        alert('Delete failed: ' + (err.message || 'Unknown error'));
       }
     }
 
-    document.getElementById('reportForm')?.addEventListener('submit', async e => {
+    document.getElementById('reportForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
-      const cooldownKey = 'lastReportTime';
+      const lastSubmit = localStorage.getItem('lastReportTime');
       const now = Date.now();
-      const last = localStorage.getItem(cooldownKey);
-      if (last && now - +last < COOLDOWN_MS) {
-        const wait = Math.ceil((COOLDOWN_MS - (now - +last)) / 1000);
-        document.getElementById('status').textContent = `Wait ${wait}s...`;
+      if (lastSubmit && now - parseInt(lastSubmit) < COOLDOWN_MS) {
+        const remaining = Math.ceil((COOLDOWN_MS - (now - parseInt(lastSubmit))) / 1000);
+        document.getElementById('status').style.color = '#f85149';
+        document.getElementById('status').textContent = `Wait ${remaining} seconds before submitting another report.`;
+        setTimeout(() => document.getElementById('status').textContent = '', 5000);
         return;
       }
 
       const status = document.getElementById('status');
-      status.textContent = 'Submitting...';
+      status.textContent = 'Submitting report...';
       status.style.color = 'white';
 
-      const formData = {
-        reported_user: document.getElementById('reported_user').value.trim() || null,
-        reason: document.getElementById('reason').value.trim(),
-        punishment: document.getElementById('punishment').value.trim() || null,
-        moderator: document.getElementById('moderator').value.trim() || null,
-        link: document.getElementById('link').value.trim() || null,
-      };
+      const reported_user = document.getElementById('reported_user').value.trim() || null;
+      const reason = document.getElementById('reason').value.trim();
+      const punishment = document.getElementById('punishment').value.trim() || null;
+      const moderator = document.getElementById('moderator').value.trim() || null;
+      const link = document.getElementById('link').value.trim() || null;
+
+      let image_url = '';
+      let video_url = '';
 
       const imageFile = document.getElementById('image').files[0];
       const videoFile = document.getElementById('video').files[0];
 
       try {
-        let image_url = '', video_url = '';
-
         if (imageFile) {
           const path = `images/${Date.now()}_${imageFile.name.replace(/\s+/g, '_')}`;
-          const { error: upErr } = await sb.storage.from('report-media').upload(path, imageFile);
-          if (upErr) throw upErr;
-          const { data } = sb.storage.from('report-media').getPublicUrl(path);
-          image_url = data.publicUrl;
+          const { error: uploadError } = await sb.storage.from('report-media').upload(path, imageFile);
+          if (uploadError) throw uploadError;
+          const { data: urlData } = sb.storage.from('report-media').getPublicUrl(path);
+          image_url = urlData.publicUrl;
         }
 
         if (videoFile) {
           const path = `videos/${Date.now()}_${videoFile.name.replace(/\s+/g, '_')}`;
-          const { error: upErr } = await sb.storage.from('report-media').upload(path, videoFile);
-          if (upErr) throw upErr;
-          const { data } = sb.storage.from('report-media').getPublicUrl(path);
-          video_url = data.publicUrl;
+          const { error: uploadError } = await sb.storage.from('report-media').upload(path, videoFile);
+          if (uploadError) throw uploadError;
+          const { data: urlData } = sb.storage.from('report-media').getPublicUrl(path);
+          video_url = urlData.publicUrl;
         }
 
-        const { error } = await sb.from('reports').insert({ ...formData, image_url, video_url });
+        const { error } = await sb
+          .from('reports')
+          .insert({
+            reported_user,
+            reason,
+            punishment,
+            moderator,
+            link,
+            image_url,
+            video_url
+          });
+
         if (error) throw error;
 
-        localStorage.setItem(cooldownKey, now.toString());
+        localStorage.setItem('lastReportTime', now.toString());
+
         status.style.color = '#2ea043';
-        status.textContent = 'Submitted successfully!';
+        status.textContent = 'Report submitted successfully!';
         document.getElementById('reportForm').reset();
 
         setTimeout(() => status.textContent = '', 4000);
       } catch (err) {
         status.style.color = '#f85149';
-        status.textContent = 'Failed: ' + (err.message || 'Unknown');
-        console.error(err);
+        status.textContent = 'Submission failed: ' + (err.message || 'Unknown error');
+        console.error('Submission error:', err);
       }
     });
-
-    // Optional: auto-load reports if view tab is active on start
-    if (document.getElementById('view').classList.contains('active')) loadReports();
   </script>
 </body>
 </html>
