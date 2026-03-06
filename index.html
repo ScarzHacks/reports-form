@@ -318,37 +318,45 @@
     // ────────────────────────────────────────────────
     // PAGE ACCESS CHECK (server-side, no password in browser)
     // ────────────────────────────────────────────────
-    (async () => {
-      const entered = prompt("Enter password to access EW Mod Panel:");
+(async () => {
+  const entered = prompt("Enter password to access EW Mod Panel:");
 
-      if (!entered) {
-        document.body.innerHTML = '<div style="position:fixed;inset:0;background:#000;color:white;display:flex;align-items:center;justify-content:center;font-size:2rem;text-align:center;padding:20px;">Access Denied</div>';
-        return;
-      }
+  if (!entered) {
+    document.body.innerHTML = '<div style="position:fixed;inset:0;background:#000;color:white;display:flex;align-items:center;justify-content:center;font-size:2rem;text-align:center;padding:20px;">Access Denied</div>';
+    return;
+  }
 
-      try {
-        const res = await fetch(PASSWORD_CHECK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'page', password: entered })
-        });
+  try {
+    const res = await fetch(PASSWORD_CHECK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'page', password: entered })
+    });
 
-        if (!res.ok) throw new Error('Auth check failed');
+    console.log('Function response status:', res.status); // ← Add this to debug
 
-        const { allowed } = await res.json();
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('Function failed with status:', res.status, errorText);
+      throw new Error(`Auth check failed (status ${res.status}): ${errorText}`);
+    }
 
-        if (!allowed) {
-          document.body.innerHTML = '<div style="position:fixed;inset:0;background:#000;color:white;display:flex;align-items:center;justify-content:center;font-size:2rem;text-align:center;padding:20px;">Incorrect password</div>';
-          return;
-        }
+    const { allowed } = await res.json();
 
-        // Correct → show site
-        document.getElementById('blocked').style.display = 'none';
-      } catch (err) {
-        console.error('Page auth error:', err);
-        document.body.innerHTML = '<div style="position:fixed;inset:0;background:#000;color:white;display:flex;align-items:center;justify-content:center;font-size:2rem;text-align:center;padding:20px;">Server error</div>';
-      }
-    })();
+    if (!allowed) {
+      document.body.innerHTML = '<div style="position:fixed;inset:0;background:#000;color:white;display:flex;align-items:center;justify-content:center;font-size:2rem;text-align:center;padding:20px;">Incorrect password</div>';
+      return;
+    }
+
+    // Correct → show site
+    document.getElementById('blocked')?.style.display = 'none';
+  } catch (err) {
+    console.error('Page auth error:', err);
+    document.body.innerHTML = `<div style="position:fixed;inset:0;background:#000;color:white;display:flex;align-items:center;justify-content:center;font-size:2rem;text-align:center;padding:20px;">
+      Server error: ${err.message || 'Unknown issue'}<br><br>Check function logs in Supabase.
+    </div>`;
+  }
+})();
 
     // ────────────────────────────────────────────────
     // SUPABASE SETUP
