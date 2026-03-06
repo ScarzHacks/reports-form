@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EW Mod Panel</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -239,7 +240,7 @@
       0%, 100% { transform: translate(0, 0); }
       25%  { transform: translate(60px, -40px); }
       50%  { transform: translate(-30px, 70px); }
-      75%  { transform: translate(-80px, -20px); }
+      75%  { transform: translate(-80px, -30px); }
     }
     @keyframes pulseOrb {
       0%   { opacity: 0.28; transform: scale(0.92); }
@@ -311,114 +312,123 @@
 
   <script>
     // ────────────────────────────────────────────────
-    // SERVER-SIDE PASSWORD CHECK ENDPOINT
+    // SERVER-SIDE PASSWORD VERIFICATION ENDPOINT
     // ────────────────────────────────────────────────
-    const PASSWORD_CHECK_URL = 'https://ugijazxbscpiwavmkjbr.supabase.co/functions/v1/verify-passwords';
-
-    // ────────────────────────────────────────────────
-    // PAGE ACCESS CHECK (server-side, no password in browser)
-    // ────────────────────────────────────────────────
-(async () => {
-  const entered = prompt("Enter password to access EW Mod Panel:");
-
-  if (!entered) {
-    document.body.innerHTML = '<div style="position:fixed;inset:0;background:#000;color:white;display:flex;align-items:center;justify-content:center;font-size:2rem;text-align:center;padding:20px;">Access Denied</div>';
-    return;
-  }
-
-  try {
-    const res = await fetch(PASSWORD_CHECK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'page', password: entered })
-    });
-
-    console.log('Function response status:', res.status); // ← Add this to debug
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error('Function failed with status:', res.status, errorText);
-      throw new Error(`Auth check failed (status ${res.status}): ${errorText}`);
-    }
-
-    const { allowed } = await res.json();
-
-    if (!allowed) {
-      document.body.innerHTML = '<div style="position:fixed;inset:0;background:#000;color:white;display:flex;align-items:center;justify-content:center;font-size:2rem;text-align:center;padding:20px;">Incorrect password</div>';
-      return;
-    }
-
-    // Correct → show site
-    document.getElementById('blocked')?.style.display = 'none';
-  } catch (err) {
-    console.error('Page auth error:', err);
-    document.body.innerHTML = `<div style="position:fixed;inset:0;background:#000;color:white;display:flex;align-items:center;justify-content:center;font-size:2rem;text-align:center;padding:20px;">
-      Server error: ${err.message || 'Unknown issue'}<br><br>Check function logs in Supabase.
-    </div>`;
-  }
-})();
+    const PASSWORD_VERIFY_URL = 'https://ugijazxbscpiwavmkjbr.supabase.co/functions/v1/verify-passwords';
 
     // ────────────────────────────────────────────────
-    // SUPABASE SETUP
+    // PAGE ACCESS CHECK (server-side)
+    // ────────────────────────────────────────────────
+    (async () => {
+      const entered = prompt("Enter password to access EW Mod Panel:");
+
+      if (!entered) {
+        document.body.innerHTML = '<div style="position:fixed;inset:0;background:#000;color:white;display:flex;align-items:center;justify-content:center;font-size:2rem;text-align:center;padding:20px;">Access Denied</div>';
+        return;
+      }
+
+      try {
+        const res = await fetch(PASSWORD_VERIFY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'page', password: entered })
+        });
+
+        console.log('Auth response status:', res.status); // debug
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error('Auth function error:', res.status, errorText);
+          throw new Error(`Auth check failed (status ${res.status})`);
+        }
+
+        const { allowed } = await res.json();
+
+        if (!allowed) {
+          document.body.innerHTML = '<div style="position:fixed;inset:0;background:#000;color:white;display:flex;align-items:center;justify-content:center;font-size:2rem;text-align:center;padding:20px;">Incorrect password</div>';
+          return;
+        }
+
+        // Correct → show site
+        document.getElementById('blocked').style.display = 'none';
+      } catch (err) {
+        console.error('Page auth error:', err);
+        document.body.innerHTML = `<div style="position:fixed;inset:0;background:#000;color:white;display:flex;align-items:center;justify-content:center;font-size:2rem;text-align:center;padding:20px;">
+          Server error: ${err.message || 'Unknown issue'}<br><br>Please wait a moment and refresh, or check Supabase function status.
+        </div>`;
+      }
+    })();
+
+    // ────────────────────────────────────────────────
+    // SUPABASE CLIENT (public anon key – safe with RLS)
     // ────────────────────────────────────────────────
     const supabaseUrl = 'https://ugijazxbscpiwavmkjbr.supabase.co';
     const supabaseKey = 'sb_publishable_tUlhOkObHpTpwlh-9R7x0Q_1kd_q6qe';
-
     const { createClient } = window.supabase;
     const sb = createClient(supabaseUrl, supabaseKey);
 
     let allReports = [];
 
     // ────────────────────────────────────────────────
-    // TAB SWITCHING
+    // TAB SWITCHING (this fixes "showTab is not defined")
     // ────────────────────────────────────────────────
     function showTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-      document.getElementById(tabId).classList.add('active');
+      const targetTab = document.getElementById(tabId);
+      if (targetTab) targetTab.classList.add('active');
 
       document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
-      document.querySelector(`nav a[href="#${tabId}"]`).classList.add('active');
+      const activeLink = document.querySelector(`nav a[href="#${tabId}"]`);
+      if (activeLink) activeLink.classList.add('active');
 
-      if (tabId === 'view') loadReports();
+      if (tabId === 'view') {
+        loadReports();
+      }
     }
 
     async function loadReports() {
       const list = document.getElementById('reports-list');
       const noResults = document.getElementById('no-results');
+      if (!list || !noResults) return;
+
       list.innerHTML = 'Loading reports...';
       noResults.style.display = 'none';
 
-      const { data, error } = await sb
-        .from('reports')
-        .select('*')
-        .order('created_at', { ascending: false });
+      try {
+        const { data, error } = await sb
+          .from('reports')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      if (error) {
-        list.innerHTML = `<p style="color:#f85149; text-align:center;">Error loading reports: ${error.message}</p>`;
-        console.error('Load error:', error);
-        return;
+        if (error) throw error;
+
+        allReports = data || [];
+
+        if (allReports.length === 0) {
+          list.innerHTML = '<p style="text-align:center; color:#8b949e; font-style:italic;">No reports have been submitted yet.</p>';
+          return;
+        }
+
+        renderReports(allReports);
+      } catch (err) {
+        list.innerHTML = `<p style="color:#f85149; text-align:center;">Error loading reports: ${err.message}</p>`;
+        console.error('Load error:', err);
       }
-
-      allReports = data || [];
-
-      if (allReports.length === 0) {
-        list.innerHTML = '<p style="text-align:center; color:#8b949e; font-style:italic;">No reports have been submitted yet.</p>';
-        return;
-      }
-
-      renderReports(allReports);
     }
 
     function renderReports(reports) {
       const list = document.getElementById('reports-list');
+      const noResults = document.getElementById('no-results');
+      if (!list || !noResults) return;
+
       list.innerHTML = '';
 
       if (reports.length === 0) {
-        document.getElementById('no-results').style.display = 'block';
+        noResults.style.display = 'block';
         return;
       }
 
-      document.getElementById('no-results').style.display = 'none';
+      noResults.style.display = 'none';
 
       reports.forEach(report => {
         const item = document.createElement('div');
@@ -451,26 +461,30 @@
       });
     }
 
-    document.getElementById('searchInput').addEventListener('input', function(e) {
-      const term = e.target.value.toLowerCase().trim();
+    // Search input listener
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', function(e) {
+        const term = e.target.value.toLowerCase().trim();
 
-      if (!term) {
-        renderReports(allReports);
-        return;
-      }
+        if (!term) {
+          renderReports(allReports);
+          return;
+        }
 
-      const filtered = allReports.filter(report => {
-        return (
-          (report.reported_user || '').toLowerCase().includes(term) ||
-          (report.reason || '').toLowerCase().includes(term) ||
-          (report.punishment || '').toLowerCase().includes(term) ||
-          (report.moderator || '').toLowerCase().includes(term) ||
-          (report.link || '').toLowerCase().includes(term)
-        );
+        const filtered = allReports.filter(report => {
+          return (
+            (report.reported_user || '').toLowerCase().includes(term) ||
+            (report.reason || '').toLowerCase().includes(term) ||
+            (report.punishment || '').toLowerCase().includes(term) ||
+            (report.moderator || '').toLowerCase().includes(term) ||
+            (report.link || '').toLowerCase().includes(term)
+          );
+        });
+
+        renderReports(filtered);
       });
-
-      renderReports(filtered);
-    });
+    }
 
     async function deleteReport(reportId, reportElement) {
       const entered = prompt("Enter delete password:");
@@ -478,13 +492,16 @@
       if (!entered) return;
 
       try {
-        const res = await fetch(PASSWORD_CHECK_URL, {
+        const res = await fetch(PASSWORD_VERIFY_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ type: 'delete', password: entered })
         });
 
-        if (!res.ok) throw new Error('Auth check failed');
+        if (!res.ok) {
+          console.error('Delete check failed with status:', res.status);
+          throw new Error('Auth check failed');
+        }
 
         const { allowed } = await res.json();
 
@@ -517,79 +534,88 @@
       }
     }
 
-    document.getElementById('reportForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
+    // Submit handler – fixed syntax error
+    const reportForm = document.getElementById('reportForm');
+    if (reportForm) {
+      reportForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
 
-      const lastSubmit = localStorage.getItem('lastReportTime');
-      const now = Date.now();
-      if (lastSubmit && now - parseInt(lastSubmit) < COOLDOWN_MS) {
-        const remaining = Math.ceil((COOLDOWN_MS - (now - parseInt(lastSubmit))) / 1000);
-        document.getElementById('status').style.color = '#f85149';
-        document.getElementById('status').textContent = `Wait ${remaining} seconds before submitting another report.`;
-        setTimeout(() => document.getElementById('status').textContent = '', 5000);
-        return;
-      }
-
-      const status = document.getElementById('status');
-      status.textContent = 'Submitting report...';
-      status.style.color = 'white';
-
-      const reported_user = document.getElementById('reported_user').value.trim() || null;
-      const reason = document.getElementById('reason').value.trim();
-      const punishment = document.getElementById('punishment').value.trim() || null;
-      const moderator = document.getElementById('moderator').value.trim() || null;
-      const link = document.getElementById('link').value.trim() || null;
-
-      let image_url = '';
-      let video_url = '';
-
-      const imageFile = document.getElementById('image').files[0];
-      const videoFile = document.getElementById('video').files[0];
-
-      try {
-        if (imageFile) {
-          const path = `images/${Date.now()}_${imageFile.name.replace(/\s+/g, '_')}`;
-          const { error: uploadError } = await sb.storage.from('report-media').upload(path, imageFile);
-          if (uploadError) throw uploadError;
-          const { data: urlData } = sb.storage.from('report-media').getPublicUrl(path);
-          image_url = urlData.publicUrl;
+        const lastSubmit = localStorage.getItem('lastReportTime');
+        const now = Date.now();
+        if (lastSubmit && now - parseInt(lastSubmit) < COOLDOWN_MS) {
+          const remaining = Math.ceil((COOLDOWN_MS - (now - parseInt(lastSubmit))) / 1000);
+          document.getElementById('status').style.color = '#f85149';
+          document.getElementById('status').textContent = `Wait ${remaining} seconds before submitting another report.`;
+          setTimeout(() => document.getElementById('status').textContent = '', 5000);
+          return;
         }
 
-        if (videoFile) {
-          const path = `videos/${Date.now()}_${videoFile.name.replace(/\s+/g, '_')}`;
-          const { error: uploadError } = await sb.storage.from('report-media').upload(path, videoFile);
-          if (uploadError) throw uploadError;
-          const { data: urlData } = sb.storage.from('report-media').getPublicUrl(path);
-          video_url = urlData.publicUrl;
+        const status = document.getElementById('status');
+        status.textContent = 'Submitting report...';
+        status.style.color = 'white';
+
+        const reported_user = document.getElementById('reported_user').value.trim() || null;
+        const reason = document.getElementById('reason').value.trim();
+        const punishment = document.getElementById('punishment').value.trim() || null;
+        const moderator = document.getElementById('moderator').value.trim() || null;
+        const link = document.getElementById('link').value.trim() || null;
+
+        let image_url = '';
+        let video_url = '';
+
+        const imageFile = document.getElementById('image').files[0];
+        const videoFile = document.getElementById('video').files[0];
+
+        try {
+          if (imageFile) {
+            const path = `images/${Date.now()}_${imageFile.name.replace(/\s+/g, '_')}`;
+            const { error: uploadError } = await sb.storage.from('report-media').upload(path, imageFile);
+            if (uploadError) throw uploadError;
+            const { data: urlData } = sb.storage.from('report-media').getPublicUrl(path);
+            image_url = urlData.publicUrl;
+          }
+
+          if (videoFile) {
+            const path = `videos/${Date.now()}_${videoFile.name.replace(/\s+/g, '_')}`;
+            const { error: uploadError } = await sb.storage.from('report-media').upload(path, videoFile);
+            if (uploadError) throw uploadError;
+            const { data: urlData } = sb.storage.from('report-media').getPublicUrl(path);
+            video_url = urlData.publicUrl;
+          }
+
+          const { error } = await sb
+            .from('reports')
+            .insert({
+              reported_user,
+              reason,
+              punishment,
+              moderator,
+              link,
+              image_url,
+              video_url
+            });
+
+          if (error) throw error;
+
+          localStorage.setItem('lastReportTime', now.toString());
+
+          status.style.color = '#2ea043';
+          status.textContent = 'Report submitted successfully!';
+          document.getElementById('reportForm').reset();
+
+          setTimeout(() => status.textContent = '', 4000);
+        } catch (err) {
+          status.style.color = '#f85149';
+          status.textContent = 'Submission failed: ' + (err.message || 'Unknown error');
+          console.error('Submission error:', err);
         }
+      });
+    }
 
-        const { error } = await sb
-          .from('reports')
-          .insert({
-            reported_user,
-            reason,
-            punishment,
-            moderator,
-            link,
-            image_url,
-            video_url
-          });
-
-        if (error) throw error;
-
-        localStorage.setItem('lastReportTime', now.toString());
-
-        status.style.color = '#2ea043';
-        status.textContent = 'Report submitted successfully!';
-        document.getElementById('reportForm').reset();
-
-        setTimeout(() => status.textContent = '', 4000);
-      } catch (err) {
-        status.style.color = '#f85149';
-        status.textContent = 'Submission failed: ' + (err.message || 'Unknown error');
-        console.error('Submission error:', err);
-      }
-    });
+    // Optional: Load reports on page load if view tab is default
+    if (document.getElementById('view').classList.contains('active')) {
+      loadReports();
+    }
   </script>
 </body>
 </html>
