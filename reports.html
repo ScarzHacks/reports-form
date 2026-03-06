@@ -6,24 +6,82 @@
   <title>All Reports</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7fa; color: #333; }
-    header { background: #0070f3; color: white; padding: 25px; text-align: center; }
-    .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
-    #searchBox { width: 100%; padding: 14px; font-size: 17px; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 25px; }
-    .report-item { background: white; padding: 18px; margin: 15px 0; border-radius: 10px; box-shadow: 0 3px 15px rgba(0,0,0,0.07); line-height: 1.6; }
-    .back-link, .refresh-area { text-align: center; margin: 30px 0; font-size: 18px; }
-    #error-msg { color: red; text-align: center; padding: 20px; font-weight: bold; background: #ffebee; border-radius: 8px; margin: 20px 0; }
+    body { 
+      font-family: 'Segoe UI', sans-serif; 
+      margin: 0; 
+      background: #f4f7fa; 
+      color: #333; 
+      line-height: 1.6; 
+    }
+    header { 
+      background: #0070f3; 
+      color: white; 
+      padding: 25px; 
+      text-align: center; 
+    }
+    .container { 
+      max-width: 900px; 
+      margin: 40px auto; 
+      padding: 0 20px; 
+    }
+    #searchBox { 
+      width: 100%; 
+      padding: 14px; 
+      font-size: 17px; 
+      border: 1px solid #ccc; 
+      border-radius: 8px; 
+      margin-bottom: 25px; 
+      box-sizing: border-box; 
+    }
+    .report-item { 
+      background: white; 
+      padding: 18px; 
+      margin: 15px 0; 
+      border-radius: 10px; 
+      box-shadow: 0 3px 15px rgba(0,0,0,0.07); 
+    }
+    .back-link, .refresh-area { 
+      text-align: center; 
+      margin: 30px 0; 
+      font-size: 18px; 
+    }
+    #error-msg { 
+      color: red; 
+      text-align: center; 
+      padding: 20px; 
+      font-weight: bold; 
+      background: #ffebee; 
+      border-radius: 8px; 
+      margin: 20px 0; 
+    }
+    button { 
+      padding: 12px 24px; 
+      background: #0070f3; 
+      color: white; 
+      border: none; 
+      border-radius: 6px; 
+      cursor: pointer; 
+      font-size: 16px; 
+    }
+    button:hover { 
+      background: #005bb5; 
+    }
+    @media (max-width: 600px) {
+      .container { padding: 0 15px; }
+      h1 { font-size: 1.8rem; }
+    }
   </style>
 </head>
 <body>
-
-  <header><h1>All Reports</h1></header>
+  <header>
+    <h1>All Reports</h1>
+  </header>
 
   <div class="container">
     <input type="text" id="searchBox" placeholder="🔍 Search reports...">
-
+    
     <div class="refresh-area">
-      <button onclick="loadReports()" style="padding:12px 24px; background:#0070f3; color:white; border:none; border-radius:6px; cursor:pointer; font-size:16px;">Refresh List</button>
+      <button onclick="loadReports()">Refresh List</button>
     </div>
 
     <div id="reports-list">Loading all reports...</div>
@@ -35,10 +93,10 @@
   </div>
 
   <script>
-    // ONLY ONE Supabase client – using createClient syntax as requested
+    // Supabase client (using createClient syntax)
     const supabaseUrl = 'https://ugijazxbscpiwavmkjbr.supabase.co';
     const supabaseKey = 'sb_publishable_tUlhOkObHpTpwlh-9R7x0Q_1kd_q6qe';
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
     let allReports = [];
 
@@ -59,7 +117,7 @@
         allReports = data || [];
         renderReports(allReports);
       } catch (err) {
-        errorDiv.innerHTML = `Failed to load reports: ${err.message || 'Unknown error'}<br><br>Check Supabase RLS policies.`;
+        errorDiv.innerHTML = `Failed to load reports: ${err.message || 'Unknown error'}<br><br>Check Supabase RLS policies or network.`;
         list.innerHTML = '';
       }
     }
@@ -90,6 +148,7 @@
       });
     }
 
+    // Search filter
     document.getElementById('searchBox').addEventListener('input', function() {
       const term = this.value.toLowerCase().trim();
       const filtered = allReports.filter(r =>
@@ -102,6 +161,7 @@
       renderReports(filtered);
     });
 
+    // Load on page open
     loadReports();
   </script>
 </body>
